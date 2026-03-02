@@ -145,6 +145,52 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const taskProjectDir = `${projectsPath}/${projectDir}`;
     const missionControlUrl = getMissionControlUrl();
 
+    // Parse planning_spec and planning_agents if present (stored as JSON text on the task row)
+    const rawTask = task as Task & { assigned_agent_name?: string; workspace_id: string; planning_spec?: string; planning_agents?: string };
+    let planningSpecSection = '';
+    let agentInstructionsSection = '';
+
+    if (rawTask.planning_spec) {
+      try {
+        const spec = JSON.parse(rawTask.planning_spec);
+        // planning_spec may be an object with spec_markdown, or a raw string
+        const specText = typeof spec === 'string' ? spec : (spec.spec_markdown || JSON.stringify(spec, null, 2));
+        planningSpecSection = `\n---\n**📋 PLANNING SPECIFICATION:**\n${specText}\n`;
+      } catch {
+        // If not valid JSON, treat as plain text
+        planningSpecSection = `\n---\n**📋 PLANNING SPECIFICATION:**\n${rawTask.planning_spec}\n`;
+      }
+    }
+
+    if (rawTask.planning_agents) {
+      try {
+        const agents = JSON.parse(rawTask.planning_agents);
+        if (Array.isArray(agents)) {
+          // Find instructions for this specific agent, or include all if none match
+          const myInstructions = agents.find(
+            (a: { agent_id?: string; name?: string; instructions?: string }) =>
+              a.agent_id === agent.id || a.name === agent.name
+          );
+          if (myInstructions?.instructions) {
+            agentInstructionsSection = `\n**🎯 YOUR INSTRUCTIONS:**\n${myInstructions.instructions}\n`;
+          } else {
+            // Include all agent instructions for context
+            const allInstructions = agents
+              .filter((a: { instructions?: string }) => a.instructions)
+              .map((a: { name?: string; role?: string; instructions?: string }) =>
+                `- **${a.name || a.role || 'Agent'}:** ${a.instructions}`
+              )
+              .join('\n');
+            if (allInstructions) {
+              agentInstructionsSection = `\n**🎯 AGENT INSTRUCTIONS:**\n${allInstructions}\n`;
+            }
+          }
+        }
+      } catch {
+        // Ignore malformed planning_agents JSON
+      }
+    }
+
     const taskMessage = `${priorityEmoji} **NEW TASK ASSIGNED**
 
 **Title:** ${task.title}
@@ -152,7 +198,7 @@ ${task.description ? `**Description:** ${task.description}\n` : ''}
 **Priority:** ${task.priority.toUpperCase()}
 ${task.due_date ? `**Due:** ${task.due_date}\n` : ''}
 **Task ID:** ${task.id}
-
+${planningSpecSection}${agentInstructionsSection}
 **OUTPUT DIRECTORY:** ${taskProjectDir}
 Create this directory and save all deliverables there.
 
