@@ -26,7 +26,7 @@ const config: Config = {
         'mc-gold': '#FFD700',
       },
       fontFamily: {
-        serif: ['Instrument Serif', 'Georgia', 'serif'],
+        serif: ['Atkinson Hyperlegible', 'Georgia', 'serif'],
         mono: ['IBM Plex Mono', 'ui-monospace', 'monospace'],
       },
     },

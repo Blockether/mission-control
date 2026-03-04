@@ -38,7 +38,7 @@ body {
 }
 
 h1, h2, h3 {
-  font-family: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
+  font-family: var(--font-atkinson-hyperlegible), 'Atkinson Hyperlegible', Georgia, serif;
 }
 
 ::-webkit-scrollbar {
