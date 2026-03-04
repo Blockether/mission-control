@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { bootstrapCoreAgents, cloneWorkflowTemplates } from '@/lib/bootstrap-agents';
+import { cloneWorkflowTemplates } from '@/lib/bootstrap-agents';
 import type { Workspace, WorkspaceStats, TaskStatus } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -116,9 +116,8 @@ export async function POST(request: NextRequest) {
       logo_url || null
     );
 
-    // Clone workflow templates and bootstrap core agents for the new workspace
+    // Clone workflow templates for the new workspace (agents come from OpenClaw sync)
     cloneWorkflowTemplates(db, id);
-    bootstrapCoreAgents(id);
 
     const workspace = db.prepare('SELECT * FROM workspaces WHERE id = ?').get(id);
     return NextResponse.json(workspace, { status: 201 });
