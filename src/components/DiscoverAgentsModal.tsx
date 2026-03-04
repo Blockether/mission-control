@@ -239,7 +239,7 @@ export function DiscoverAgentsModal({ onClose, workspaceId }: DiscoverAgentsModa
                         }`}
                       >
                         {(isSelected || isImported) && (
-                          <Check className={`w-3 h-3 ${isImported ? 'text-green-400' : 'text-mc-bg'}`} />
+                          <Check className={`w-3 h-3 ${isImported ? 'text-green-400' : 'text-white'}`} />
                         )}
                       </div>
 
@@ -286,7 +286,7 @@ export function DiscoverAgentsModal({ onClose, workspaceId }: DiscoverAgentsModa
             <button
               onClick={handleImport}
               disabled={selectedIds.size === 0 || importing}
-              className="min-h-11 flex items-center gap-2 px-4 py-2 bg-mc-accent text-mc-bg rounded text-sm font-medium hover:bg-mc-accent/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="min-h-11 flex items-center gap-2 px-4 py-2 bg-mc-accent text-white rounded text-sm font-medium hover:bg-mc-accent/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {importing ? (
                 <>

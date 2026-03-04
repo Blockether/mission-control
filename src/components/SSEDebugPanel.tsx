@@ -83,7 +83,7 @@ export function SSEDebugPanel() {
       >
         {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         <span className="text-mc-accent">Debug</span>
-        <span className="bg-mc-accent text-mc-bg px-2 py-0.5 rounded text-xs">
+        <span className="bg-mc-accent text-white px-2 py-0.5 rounded text-xs">
           {logs.length}
         </span>
       </button>

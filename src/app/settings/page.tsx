@@ -70,7 +70,7 @@ export default function SettingsPage() {
             <button
               onClick={() => router.push('/')}
               className="p-2 hover:bg-mc-bg-tertiary rounded text-mc-text-secondary"
-              title="Back to Mission Control"
+              title="Back to Blockether"
             >
               ← Back
             </button>
@@ -89,7 +89,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="px-4 py-2 bg-mc-accent text-mc-bg rounded hover:bg-mc-accent/90 flex items-center gap-2 disabled:opacity-50"
+              className="px-4 py-2 bg-mc-accent text-white rounded hover:bg-mc-accent/90 flex items-center gap-2 disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               {isSaving ? 'Saving...' : 'Save Changes'}
@@ -121,7 +121,7 @@ export default function SettingsPage() {
             <h2 className="text-xl font-semibold text-mc-text">Workspace Paths</h2>
           </div>
           <p className="text-sm text-mc-text-secondary mb-4">
-            Configure where Mission Control stores projects and deliverables.
+            Configure where Blockether stores projects and deliverables.
           </p>
 
           <div className="space-y-4">
@@ -137,7 +137,7 @@ export default function SettingsPage() {
                 className="w-full px-4 py-2 bg-mc-bg border border-mc-border rounded text-mc-text focus:border-mc-accent focus:outline-none"
               />
               <p className="text-xs text-mc-text-secondary mt-1">
-                Base directory for all Mission Control files. Use ~ for home directory.
+                Base directory for all Blockether files. Use ~ for home directory.
               </p>
             </div>
 
@@ -182,13 +182,13 @@ export default function SettingsPage() {
             <h2 className="text-xl font-semibold text-mc-text">API Configuration</h2>
           </div>
           <p className="text-sm text-mc-text-secondary mb-4">
-            Configure Mission Control API URL for agent orchestration.
+            Configure Blockether API URL for agent orchestration.
           </p>
 
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-mc-text mb-2">
-                Mission Control URL
+                Blockether URL
               </label>
               <input
                 type="text"
@@ -198,7 +198,7 @@ export default function SettingsPage() {
                 className="w-full px-4 py-2 bg-mc-bg border border-mc-border rounded text-mc-text focus:border-mc-accent focus:outline-none"
               />
               <p className="text-xs text-mc-text-secondary mt-1">
-                URL where Mission Control is running. Auto-detected by default. Change for remote access.
+                URL where Blockether is running. Auto-detected by default. Change for remote access.
               </p>
             </div>
           </div>
@@ -207,7 +207,7 @@ export default function SettingsPage() {
         {/* Environment Variables Note */}
         <section className="p-6 bg-blue-500/10 border border-blue-500/30 rounded-lg">
           <h3 className="text-lg font-semibold text-blue-400 mb-2">
-            📝 Environment Variables
+            Environment Variables
           </h3>
           <p className="text-sm text-blue-300 mb-3">
             Some settings are also configurable via environment variables in <code className="px-2 py-1 bg-mc-bg rounded">.env.local</code>:

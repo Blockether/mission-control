@@ -179,10 +179,10 @@ export default function WorkspacePage() {
     return (
       <div className="min-h-screen bg-mc-bg flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl mb-4">🔍</div>
+          <div className="text-xl font-bold text-mc-text-secondary mb-4">Not Found</div>
           <h1 className="text-2xl font-bold mb-2">Workspace Not Found</h1>
           <p className="text-mc-text-secondary mb-6">The workspace &ldquo;{slug}&rdquo; doesn&apos;t exist.</p>
-          <Link href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-mc-accent text-mc-bg rounded-lg font-medium hover:bg-mc-accent/90">
+          <Link href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-mc-accent text-white rounded-lg font-medium hover:bg-mc-accent/90">
             <ChevronLeft className="w-4 h-4" />
             Back to Dashboard
           </Link>
@@ -195,7 +195,7 @@ export default function WorkspacePage() {
     return (
       <div className="min-h-screen bg-mc-bg flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4 animate-pulse">🦞</div>
+          <img src="/favicon.svg" alt="Blockether" className="w-10 h-10 mb-4 animate-pulse" />
           <p className="text-mc-text-secondary">Loading {slug}...</p>
         </div>
       </div>
@@ -241,19 +241,19 @@ export default function WorkspacePage() {
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => setMobileTab('agents')}
-                  className={`min-h-11 rounded-lg text-xs ${mobileTab === 'agents' ? 'bg-mc-accent text-mc-bg font-medium' : 'bg-mc-bg-secondary border border-mc-border text-mc-text-secondary'}`}
+                  className={`min-h-11 rounded-lg text-xs ${mobileTab === 'agents' ? 'bg-mc-accent text-white font-medium' : 'bg-mc-bg-secondary border border-mc-border text-mc-text-secondary'}`}
                 >
                   Agents
                 </button>
                 <button
                   onClick={() => setMobileTab('feed')}
-                  className={`min-h-11 rounded-lg text-xs ${mobileTab === 'feed' ? 'bg-mc-accent text-mc-bg font-medium' : 'bg-mc-bg-secondary border border-mc-border text-mc-text-secondary'}`}
+                  className={`min-h-11 rounded-lg text-xs ${mobileTab === 'feed' ? 'bg-mc-accent text-white font-medium' : 'bg-mc-bg-secondary border border-mc-border text-mc-text-secondary'}`}
                 >
                   Feed
                 </button>
                 <button
                   onClick={() => setMobileTab('settings')}
-                  className={`min-h-11 rounded-lg text-xs ${mobileTab === 'settings' ? 'bg-mc-accent text-mc-bg font-medium' : 'bg-mc-bg-secondary border border-mc-border text-mc-text-secondary'}`}
+                  className={`min-h-11 rounded-lg text-xs ${mobileTab === 'settings' ? 'bg-mc-accent text-white font-medium' : 'bg-mc-bg-secondary border border-mc-border text-mc-text-secondary'}`}
                 >
                   Settings
                 </button>
@@ -294,7 +294,7 @@ function MobileTabButton({ label, active, icon, onClick }: { label: string; acti
     <button
       onClick={onClick}
       className={`min-h-11 rounded-lg flex flex-col items-center justify-center text-xs ${
-        active ? 'bg-mc-accent text-mc-bg font-medium' : 'text-mc-text-secondary'
+        active ? 'bg-mc-accent text-white font-medium' : 'text-mc-text-secondary'
       }`}
     >
       {icon}
@@ -327,7 +327,7 @@ function MobileSettingsPanel({ workspace, denseLandscape = false }: { workspace:
         <Link href="/settings" className="w-full min-h-11 px-4 rounded-lg border border-mc-border bg-mc-bg-secondary flex items-center justify-between text-sm">
           <span className="flex items-center gap-2">
             <SettingsIcon className="w-4 h-4" />
-            Open Mission Control Settings
+            Open Blockether Settings
           </span>
           <ExternalLink className="w-4 h-4 text-mc-text-secondary" />
         </Link>

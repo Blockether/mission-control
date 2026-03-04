@@ -32,7 +32,7 @@ export function WorkspaceDashboard() {
     return (
       <div className="min-h-screen bg-mc-bg flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4 animate-pulse">🦞</div>
+          <img src="/favicon.svg" alt="Blockether" className="w-10 h-10 mb-4 animate-pulse" />
           <p className="text-mc-text-secondary">Loading workspaces...</p>
         </div>
       </div>
@@ -46,8 +46,8 @@ export function WorkspaceDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">🦞</span>
-              <h1 className="text-xl font-bold">Mission Control</h1>
+              <img src="/favicon.svg" alt="Blockether" className="w-7 h-7" />
+              <h1 className="text-xl font-bold">Blockether</h1>
             </div>
             <div className="flex items-center gap-2">
               <Link
@@ -59,7 +59,7 @@ export function WorkspaceDashboard() {
               </Link>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="min-h-11 flex items-center gap-2 px-4 bg-mc-accent text-mc-bg rounded-lg font-medium hover:bg-mc-accent/90"
+                className="min-h-11 flex items-center gap-2 px-4 bg-mc-accent text-white rounded-lg font-medium hover:bg-mc-accent/90"
               >
                 <Plus className="w-4 h-4" />
                 New Workspace
@@ -87,7 +87,7 @@ export function WorkspaceDashboard() {
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 bg-mc-accent text-mc-bg rounded-lg font-medium hover:bg-mc-accent/90"
+              className="px-6 py-3 bg-mc-accent text-white rounded-lg font-medium hover:bg-mc-accent/90"
             >
               Create Workspace
             </button>
@@ -218,7 +218,7 @@ function WorkspaceCard({ workspace, onDelete }: { workspace: WorkspaceStats; onD
             Are you sure you want to delete <strong>{workspace.name}</strong>? 
             {workspace.taskCounts.total > 0 && (
               <span className="block mt-2 text-mc-accent-red">
-                ⚠️ This workspace has {workspace.taskCounts.total} task(s). Delete them first.
+                Warning: This workspace has {workspace.taskCounts.total} task(s). Delete them first.
               </span>
             )}
           </p>
@@ -247,11 +247,11 @@ function WorkspaceCard({ workspace, onDelete }: { workspace: WorkspaceStats; onD
 
 function CreateWorkspaceModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [name, setName] = useState('');
-  const [icon, setIcon] = useState('📁');
+  const [icon, setIcon] = useState('BL');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const icons = ['📁', '💼', '🏢', '🚀', '💡', '🎯', '📊', '🔧', '🌟', '🏠'];
+  const icons = ['BL', 'WK', 'HQ', 'RK', 'ID', 'TG', 'AN', 'TL', 'ST', 'HM'];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -337,7 +337,7 @@ function CreateWorkspaceModal({ onClose, onCreated }: { onClose: () => void; onC
             <button
               type="submit"
               disabled={!name.trim() || isSubmitting}
-              className="px-6 py-2 bg-mc-accent text-mc-bg rounded-lg font-medium hover:bg-mc-accent/90 disabled:opacity-50"
+              className="px-6 py-2 bg-mc-accent text-white rounded-lg font-medium hover:bg-mc-accent/90 disabled:opacity-50"
             >
               {isSubmitting ? 'Creating...' : 'Create Workspace'}
             </button>

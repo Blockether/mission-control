@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Zap, Settings, ChevronLeft, LayoutGrid } from 'lucide-react';
+import { Settings, ChevronLeft, LayoutGrid } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import { format } from 'date-fns';
 import type { Workspace } from '@/lib/types';
@@ -101,8 +101,8 @@ export function Header({ workspace, isPortrait = true }: HeaderProps) {
         <>
           <div className="flex items-center gap-2 md:gap-4 min-w-0">
             <div className="hidden sm:flex items-center gap-2">
-              <Zap className="w-5 h-5 text-mc-accent-cyan" />
-              <span className="font-semibold text-mc-text uppercase tracking-wider text-sm">Mission Control</span>
+              <img src="/favicon.svg" alt="Blockether" className="w-6 h-6" />
+              <span className="font-semibold text-mc-text uppercase tracking-wider text-sm">Blockether</span>
             </div>
 
             {workspace ? (

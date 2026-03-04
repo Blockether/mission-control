@@ -1,19 +1,12 @@
-/**
- * File Preview API
- * Serves local files for preview in the browser.
- * Supports HTML (rendered), Markdown (rendered to HTML), and text (wrapped in <pre>).
- */
-
 import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync, existsSync, statSync } from 'fs';
 import path from 'path';
+import { marked } from 'marked';
 
 export const dynamic = 'force-dynamic';
 
-// Maximum file size for preview (1MB)
 const MAX_PREVIEW_SIZE = 1024 * 1024;
 
-// Extensions that can be previewed as text
 const TEXT_EXTENSIONS = new Set([
   '.md', '.markdown', '.txt', '.csv', '.log', '.json', '.xml', '.yaml', '.yml',
   '.js', '.ts', '.jsx', '.tsx', '.css', '.scss', '.py', '.rb', '.go', '.rs',
@@ -22,65 +15,64 @@ const TEXT_EXTENSIONS = new Set([
   '.cljs', '.cljc', '.edn', '.ex', '.exs', '.hs', '.lua', '.r', '.swift',
 ]);
 
-/**
- * Simple Markdown to HTML renderer (no external dependencies)
- * Handles: headers, bold, italic, code blocks, inline code, links, lists, blockquotes, hr
- */
-function renderMarkdown(md: string): string {
-  let html = md
-    // Escape HTML entities first
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    // Fenced code blocks (```...```)
-    .replace(/```(\w*)\n([\s\S]*?)```/g, (_match, _lang, code) =>
-      `<pre style="background:#1e1e2e;color:#cdd6f4;padding:16px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.5"><code>${code.trim()}</code></pre>`)
-    // Headers
-    .replace(/^######\s+(.+)$/gm, '<h6 style="margin:16px 0 8px;color:#cba6f7">$1</h6>')
-    .replace(/^#####\s+(.+)$/gm, '<h5 style="margin:16px 0 8px;color:#cba6f7">$1</h5>')
-    .replace(/^####\s+(.+)$/gm, '<h4 style="margin:20px 0 8px;color:#cba6f7">$1</h4>')
-    .replace(/^###\s+(.+)$/gm, '<h3 style="margin:24px 0 8px;color:#cba6f7;font-size:1.1em">$1</h3>')
-    .replace(/^##\s+(.+)$/gm, '<h2 style="margin:28px 0 12px;color:#89b4fa;font-size:1.3em;border-bottom:1px solid #313244;padding-bottom:8px">$1</h2>')
-    .replace(/^#\s+(.+)$/gm, '<h1 style="margin:28px 0 16px;color:#89b4fa;font-size:1.6em;border-bottom:2px solid #313244;padding-bottom:8px">$1</h1>')
-    // Horizontal rules
-    .replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid #313244;margin:24px 0">')
-    // Bold + italic
-    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-    // Bold
-    .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#f5e0dc">$1</strong>')
-    // Italic
-    .replace(/\*(.+?)\*/g, '<em style="color:#f5c2e7">$1</em>')
-    // Inline code
-    .replace(/`([^`]+)`/g, '<code style="background:#313244;color:#a6e3a1;padding:2px 6px;border-radius:4px;font-size:0.9em">$1</code>')
-    // Links
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:#89b4fa;text-decoration:underline">$1</a>')
-    // Blockquotes
-    .replace(/^&gt;\s+(.+)$/gm, '<blockquote style="border-left:3px solid #585b70;padding:4px 12px;margin:8px 0;color:#a6adc8;background:#1e1e2e;border-radius:0 4px 4px 0">$1</blockquote>')
-    // Unordered lists
-    .replace(/^[-*]\s+(.+)$/gm, '<li style="margin:4px 0;list-style-type:disc;margin-left:20px">$1</li>')
-    // Ordered lists
-    .replace(/^\d+\.\s+(.+)$/gm, '<li style="margin:4px 0;list-style-type:decimal;margin-left:20px">$1</li>')
-    // Tables - header
-    .replace(/^\|(.+)\|$/gm, (match) => {
-      const cells = match.slice(1, -1).split('|').map(c => c.trim());
-      if (cells.every(c => /^[-:]+$/.test(c))) return '<!-- table-separator -->';
-      return '<tr>' + cells.map(c => `<td style="padding:8px 12px;border:1px solid #313244">${c}</td>`).join('') + '</tr>';
-    })
-    // Paragraphs (double newlines)
-    .replace(/\n\n/g, '</p><p style="margin:8px 0;line-height:1.6">')
-    // Single newlines → <br>
-    .replace(/\n/g, '<br>');
-
-  // Clean up table separators
-  html = html.replace(/<!-- table-separator -->/g, '');
-
-  // Wrap tables
-  html = html.replace(/(<tr>[\s\S]*?<\/tr>)/g, (tableContent) => {
-    return `<table style="border-collapse:collapse;width:100%;margin:12px 0">${tableContent}</table>`;
-  });
-
-  return html;
-}
+const LIGHT_THEME_CSS = `
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 32px;
+    background: #fdf4e5; color: #333;
+    font-family: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+    font-size: 15px; line-height: 1.7;
+  }
+  .header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; margin: -24px -32px 24px;
+    background: #fff; border-bottom: 1px solid #e5d5b8;
+    font-size: 13px; color: #666;
+  }
+  .header .filename { color: #b8960c; font-weight: 600; }
+  .header .size { color: #999; }
+  .content { max-width: 860px; }
+  .content h1 { font-size: 1.6em; margin: 28px 0 16px; color: #333; border-bottom: 2px solid #e5d5b8; padding-bottom: 8px; }
+  .content h2 { font-size: 1.3em; margin: 24px 0 12px; color: #333; border-bottom: 1px solid #e5d5b8; padding-bottom: 6px; }
+  .content h3 { font-size: 1.1em; margin: 20px 0 8px; color: #444; }
+  .content h4, .content h5, .content h6 { margin: 16px 0 8px; color: #555; }
+  .content p { margin: 10px 0; }
+  .content a { color: #b8960c; text-decoration: underline; }
+  .content a:hover { color: #8a7009; }
+  .content strong { color: #222; }
+  .content em { color: #555; }
+  .content code {
+    background: #f0e6d0; color: #7a5c00; padding: 2px 6px;
+    border-radius: 4px; font-size: 0.9em;
+  }
+  .content pre {
+    background: #fff; color: #333; padding: 16px;
+    border-radius: 8px; border: 1px solid #e5d5b8;
+    overflow-x: auto; font-size: 13px; line-height: 1.5;
+  }
+  .content pre code { background: none; color: inherit; padding: 0; }
+  .content blockquote {
+    border-left: 3px solid #b8960c; padding: 4px 16px; margin: 12px 0;
+    color: #666; background: #fff; border-radius: 0 6px 6px 0;
+  }
+  .content ul, .content ol { padding-left: 24px; margin: 8px 0; }
+  .content li { margin: 4px 0; }
+  .content hr { border: none; border-top: 1px solid #e5d5b8; margin: 24px 0; }
+  .content table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  .content th {
+    background: #fff; color: #333; font-weight: 600;
+    padding: 10px 14px; border: 1px solid #e5d5b8; text-align: left;
+  }
+  .content td { padding: 8px 14px; border: 1px solid #e5d5b8; }
+  .content tr:nth-child(even) { background: #faf0dc; }
+  .content img { max-width: 100%; border-radius: 6px; }
+  pre.raw {
+    background: #fff; color: #333; padding: 16px;
+    border-radius: 8px; border: 1px solid #e5d5b8;
+    overflow-x: auto; font-size: 13px; line-height: 1.5;
+    white-space: pre-wrap; word-wrap: break-word;
+  }
+`;
 
 export async function GET(request: NextRequest) {
   const filePath = request.nextUrl.searchParams.get('path');
@@ -89,7 +81,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'path is required' }, { status: 400 });
   }
 
-  // Expand tilde and normalize
   const expandedPath = filePath.replace(/^~/, process.env.HOME || '');
   const normalizedPath = path.normalize(expandedPath);
   const ext = path.extname(normalizedPath).toLowerCase();
@@ -104,7 +95,6 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Security check - only allow paths from environment config
   const allowedPaths = [
     process.env.WORKSPACE_BASE_PATH?.replace(/^~/, process.env.HOME || ''),
     process.env.PROJECTS_PATH?.replace(/^~/, process.env.HOME || ''),
@@ -122,7 +112,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'File not found' }, { status: 404 });
   }
 
-  // Check file size
   const stats = statSync(normalizedPath);
   if (stats.size > MAX_PREVIEW_SIZE) {
     return NextResponse.json(
@@ -135,43 +124,17 @@ export async function GET(request: NextRequest) {
     const content = readFileSync(normalizedPath, 'utf-8');
     const fileName = path.basename(normalizedPath);
 
-    // HTML files — serve directly
     if (isHtml) {
       return new NextResponse(content, {
         headers: { 'Content-Type': 'text/html' },
       });
     }
 
-    // Build a styled HTML wrapper for non-HTML files
-    const pageStyle = `
-      body {
-        margin: 0; padding: 24px 32px;
-        background: #181825; color: #cdd6f4;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        font-size: 15px; line-height: 1.6;
-      }
-      .header {
-        display: flex; align-items: center; gap: 12px;
-        padding: 12px 16px; margin: -24px -32px 24px;
-        background: #11111b; border-bottom: 1px solid #313244;
-        font-family: monospace; font-size: 13px; color: #a6adc8;
-      }
-      .header .filename { color: #89b4fa; font-weight: 600; }
-      .header .size { color: #585b70; }
-      .content { max-width: 860px; }
-      pre.raw {
-        background: #1e1e2e; color: #cdd6f4;
-        padding: 16px; border-radius: 8px;
-        overflow-x: auto; font-size: 13px; line-height: 1.5;
-        white-space: pre-wrap; word-wrap: break-word;
-      }
-    `;
-
     let bodyContent: string;
     if (isMarkdown) {
-      bodyContent = `<div class="content">${renderMarkdown(content)}</div>`;
+      const rendered = marked(content, { gfm: true, breaks: true });
+      bodyContent = `<div class="content">${rendered}</div>`;
     } else {
-      // Plain text / code — wrap in <pre>
       const escaped = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       bodyContent = `<pre class="raw">${escaped}</pre>`;
     }
@@ -180,8 +143,8 @@ export async function GET(request: NextRequest) {
 <html lang="en"><head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${fileName} — Mission Control Preview</title>
-  <style>${pageStyle}</style>
+  <title>${fileName} — Blockether Preview</title>
+  <style>${LIGHT_THEME_CSS}</style>
 </head><body>
   <div class="header">
     <span class="filename">${fileName}</span>
