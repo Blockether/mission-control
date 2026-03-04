@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, ArrowRight, Folder, Users, CheckSquare, Trash2, AlertTriangle, Activity, Github, Mail } from 'lucide-react';
+import { Plus, ArrowRight, Folder, Users, CheckSquare, Trash2, AlertTriangle, Activity, Github, Mail, Pencil } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { WorkspaceStats } from '@/lib/types';
@@ -10,6 +10,7 @@ export function WorkspaceDashboard() {
   const [workspaces, setWorkspaces] = useState<WorkspaceStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingWorkspace, setEditingWorkspace] = useState<WorkspaceStats | null>(null);
 
   useEffect(() => {
     loadWorkspaces();
@@ -100,6 +101,7 @@ export function WorkspaceDashboard() {
                 key={workspace.id} 
                 workspace={workspace} 
                 onDelete={(id) => setWorkspaces(workspaces.filter(w => w.id !== id))}
+                onEdit={(ws) => setEditingWorkspace(ws)}
               />
             ))}
             
@@ -117,7 +119,6 @@ export function WorkspaceDashboard() {
         )}
       </main>
 
-      {/* Create Modal */}
       {showCreateModal && (
         <CreateWorkspaceModal 
           onClose={() => setShowCreateModal(false)}
@@ -127,11 +128,22 @@ export function WorkspaceDashboard() {
           }}
         />
       )}
+
+      {editingWorkspace && (
+        <EditWorkspaceModal
+          workspace={editingWorkspace}
+          onClose={() => setEditingWorkspace(null)}
+          onSaved={() => {
+            setEditingWorkspace(null);
+            loadWorkspaces();
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function WorkspaceCard({ workspace, onDelete }: { workspace: WorkspaceStats; onDelete: (id: string) => void }) {
+function WorkspaceCard({ workspace, onDelete, onEdit }: { workspace: WorkspaceStats; onDelete: (id: string) => void; onEdit: (workspace: WorkspaceStats) => void }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const normalizedGithubRepo = workspace.github_repo
@@ -175,6 +187,17 @@ function WorkspaceCard({ workspace, onDelete }: { workspace: WorkspaceStats; onD
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onEdit(workspace);
+              }}
+              className="p-1.5 rounded hover:bg-mc-accent/20 text-mc-text-secondary hover:text-mc-accent transition-colors opacity-0 group-hover:opacity-100"
+              title="Edit workspace"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
             {workspace.id !== 'default' && (
               <button
                 onClick={(e) => {
@@ -276,6 +299,124 @@ function WorkspaceCard({ workspace, onDelete }: { workspace: WorkspaceStats; onD
       </div>
     )}
     </>
+  );
+}
+
+function EditWorkspaceModal({ workspace, onClose, onSaved }: { workspace: WorkspaceStats; onClose: () => void; onSaved: () => void }) {
+  const [name, setName] = useState(workspace.name);
+  const [githubRepo, setGithubRepo] = useState(workspace.github_repo || '');
+  const [ownerEmail, setOwnerEmail] = useState(workspace.owner_email || '');
+  const [coordinatorEmail, setCoordinatorEmail] = useState(workspace.coordinator_email || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/workspaces/${workspace.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          github_repo: githubRepo.trim() || null,
+          owner_email: ownerEmail.trim() || null,
+          coordinator_email: coordinatorEmail.trim() || null,
+        }),
+      });
+
+      if (res.ok) {
+        onSaved();
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to update workspace');
+      }
+    } catch {
+      setError('Failed to update workspace');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-3 sm:p-4" onClick={onClose}>
+      <div className="bg-mc-bg-secondary border border-mc-border rounded-t-xl sm:rounded-xl w-full max-w-md pb-[env(safe-area-inset-bottom)] sm:pb-0" onClick={e => e.stopPropagation()}>
+        <div className="p-6 border-b border-mc-border">
+          <h2 className="text-lg font-semibold">Edit Workspace</h2>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full bg-mc-bg border border-mc-border rounded-lg px-4 py-2 focus:outline-none focus:border-mc-accent"
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">GitHub Repository</label>
+            <input
+              type="text"
+              value={githubRepo}
+              onChange={(e) => setGithubRepo(e.target.value)}
+              placeholder="https://github.com/org/repo"
+              className="w-full bg-mc-bg border border-mc-border rounded-lg px-4 py-2 focus:outline-none focus:border-mc-accent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Owner Email</label>
+            <input
+              type="email"
+              value={ownerEmail}
+              onChange={(e) => setOwnerEmail(e.target.value)}
+              placeholder="owner@company.com"
+              className="w-full bg-mc-bg border border-mc-border rounded-lg px-4 py-2 focus:outline-none focus:border-mc-accent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Coordinator Email</label>
+            <input
+              type="email"
+              value={coordinatorEmail}
+              onChange={(e) => setCoordinatorEmail(e.target.value)}
+              placeholder="coordinator@company.com"
+              className="w-full bg-mc-bg border border-mc-border rounded-lg px-4 py-2 focus:outline-none focus:border-mc-accent"
+            />
+          </div>
+
+          {error && (
+            <div className="text-mc-accent-red text-sm">{error}</div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-mc-text-secondary hover:text-mc-text"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!name.trim() || isSubmitting}
+              className="px-6 py-2 bg-mc-accent text-white rounded-lg font-medium hover:bg-mc-accent/90 disabled:opacity-50"
+            >
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
