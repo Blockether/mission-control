@@ -41,10 +41,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/agents - Create a new agent
+// POST /api/agents - Disabled: agents are created via OpenClaw sync only
 export async function POST(request: NextRequest) {
   try {
     const body: CreateAgentRequest = await request.json();
+
+    if (!(body as { source?: string }).source || (body as { source?: string }).source !== 'synced') {
+      return NextResponse.json({ error: 'Standalone agent creation is disabled. Agents are synced from OpenClaw Gateway.' }, { status: 403 });
+    }
 
     if (!body.name || !body.role) {
       return NextResponse.json({ error: 'Name and role are required' }, { status: 400 });

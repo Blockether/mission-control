@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, ChevronRight, ChevronLeft, RefreshCw } from 'lucide-react';
+import { ChevronRight, ChevronLeft, RefreshCw } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import type { Agent, AgentStatus, OpenClawSession } from '@/lib/types';
 import { AgentModal } from './AgentModal';
@@ -18,7 +18,6 @@ interface AgentsSidebarProps {
 export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = true }: AgentsSidebarProps) {
   const { agents, selectedAgent, setSelectedAgent, setAgents, agentOpenClawSessions, setAgentOpenClawSession } = useMissionControl();
   const [filter, setFilter] = useState<FilterTab>('all');
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [activeSubAgents, setActiveSubAgents] = useState(0);
@@ -227,13 +226,6 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
       {!effectiveMinimized && (
         <div className="p-3 border-t border-mc-border space-y-2">
           <button
-            onClick={() => setShowCreateModal(true)}
-            className="w-full min-h-11 flex items-center justify-center gap-2 px-3 bg-mc-bg-tertiary hover:bg-mc-border rounded text-sm text-mc-text-secondary hover:text-mc-text transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add Agent
-          </button>
-          <button
             onClick={handleSyncGateway}
             disabled={syncing}
             className="w-full min-h-11 flex items-center justify-center gap-2 px-3 bg-mc-accent/10 hover:bg-mc-accent/20 border border-mc-accent/20 rounded text-sm text-mc-accent hover:text-mc-accent/80 transition-colors disabled:opacity-50"
@@ -244,7 +236,6 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
         </div>
       )}
 
-      {showCreateModal && <AgentModal onClose={() => setShowCreateModal(false)} workspaceId={workspaceId} />}
       {editingAgent && <AgentModal agent={editingAgent} onClose={() => setEditingAgent(null)} workspaceId={workspaceId} />}
 
     </aside>
