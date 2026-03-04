@@ -188,7 +188,6 @@ function WorkspaceCard({ workspace, onDelete, onEdit }: { workspace: WorkspaceSt
               <h3 className="font-semibold text-lg group-hover:text-mc-accent transition-colors">
                 {workspace.name}
               </h3>
-              <p className="text-sm text-mc-text-secondary">/{workspace.slug}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -220,7 +219,10 @@ function WorkspaceCard({ workspace, onDelete, onEdit }: { workspace: WorkspaceSt
           </div>
         </div>
 
-        {/* Simple task/agent counts */}
+        {workspace.description && (
+          <p className="text-sm text-mc-text-secondary line-clamp-2 mt-1">{workspace.description}</p>
+        )}
+
         <div className="flex items-center gap-4 text-sm text-mc-text-secondary mt-4">
           <div className="flex items-center gap-1">
             <CheckSquare className="w-4 h-4" />

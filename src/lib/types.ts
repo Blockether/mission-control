@@ -143,6 +143,7 @@ export interface WorkspaceStats {
   id: string;
   name: string;
   slug: string;
+  description?: string;
   icon: string;
   github_repo?: string;
   owner_email?: string;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { cloneWorkflowTemplates } from '@/lib/bootstrap-agents';
+import { fetchRepoDescription } from '@/lib/github';
 import type { Workspace, WorkspaceStats, TaskStatus } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -60,6 +61,7 @@ export async function GET(request: NextRequest) {
           id: workspace.id,
           name: workspace.name,
           slug: workspace.slug,
+          description: workspace.description,
           icon: workspace.icon,
           github_repo: workspace.github_repo,
           owner_email: workspace.owner_email,
@@ -101,6 +103,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'A workspace with this name already exists' }, { status: 400 });
     }
 
+    let resolvedDescription = description || null;
+    if (!resolvedDescription && github_repo) {
+      resolvedDescription = await fetchRepoDescription(github_repo);
+    }
+
     db.prepare(`
       INSERT INTO workspaces (id, name, slug, description, icon, github_repo, owner_email, coordinator_email, logo_url)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -108,7 +115,7 @@ export async function POST(request: NextRequest) {
       id,
       name.trim(),
       slug,
-      description || null,
+      resolvedDescription,
       icon || 'BL',
       github_repo || null,
       owner_email || null,

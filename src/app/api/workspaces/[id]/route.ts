@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { fetchRepoDescription } from '@/lib/github';
 
 export const dynamic = 'force-dynamic';
 // GET /api/workspaces/[id] - Get a single workspace
@@ -66,6 +67,14 @@ export async function PATCH(
     if (github_repo !== undefined) {
       updates.push('github_repo = ?');
       values.push(github_repo);
+
+      if (github_repo && description === undefined) {
+        const ghDesc = await fetchRepoDescription(github_repo);
+        if (ghDesc) {
+          updates.push('description = ?');
+          values.push(ghDesc);
+        }
+      }
     }
     if (owner_email !== undefined) {
       updates.push('owner_email = ?');
