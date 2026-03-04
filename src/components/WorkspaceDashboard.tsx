@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, ArrowRight, Folder, Users, CheckSquare, Trash2, AlertTriangle, Activity } from 'lucide-react';
+import { Plus, ArrowRight, Folder, Users, CheckSquare, Trash2, AlertTriangle, Activity, Github, Mail } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { WorkspaceStats } from '@/lib/types';
@@ -134,6 +134,11 @@ export function WorkspaceDashboard() {
 function WorkspaceCard({ workspace, onDelete }: { workspace: WorkspaceStats; onDelete: (id: string) => void }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const normalizedGithubRepo = workspace.github_repo
+    ? (workspace.github_repo.startsWith('http://') || workspace.github_repo.startsWith('https://')
+      ? workspace.github_repo
+      : `https://${workspace.github_repo}`)
+    : null;
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -158,7 +163,7 @@ function WorkspaceCard({ workspace, onDelete }: { workspace: WorkspaceStats; onD
   return (
     <>
     <Link href={`/workspace/${workspace.slug}`}>
-      <div className="bg-mc-bg-secondary border border-mc-border rounded-xl p-4 sm:p-6 hover:border-mc-accent/50 transition-all hover:shadow-lg cursor-pointer group relative h-[200px]">
+      <div className="bg-mc-bg-secondary border border-mc-border rounded-xl p-4 sm:p-6 hover:border-mc-accent/50 transition-all hover:shadow-lg cursor-pointer group relative h-[240px]">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <Folder className="w-7 h-7 text-mc-accent" />
@@ -197,6 +202,34 @@ function WorkspaceCard({ workspace, onDelete }: { workspace: WorkspaceStats; onD
             <Users className="w-4 h-4" />
             <span>{workspace.agentCount} agents</span>
           </div>
+        </div>
+
+        <div className="mt-3 space-y-1.5 text-sm text-mc-text-secondary">
+          {normalizedGithubRepo && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.open(normalizedGithubRepo, '_blank', 'noopener,noreferrer');
+              }}
+              className="inline-flex items-center gap-1.5 hover:text-mc-accent transition-colors"
+            >
+              <Github className="w-4 h-4" />
+              <span className="truncate max-w-[220px]">{workspace.github_repo}</span>
+            </button>
+          )}
+          {workspace.owner_email && (
+            <div className="flex items-center gap-1.5">
+              <Mail className="w-4 h-4" />
+              <span className="truncate">Owner: {workspace.owner_email}</span>
+            </div>
+          )}
+          {workspace.coordinator_email && (
+            <div className="flex items-center gap-1.5">
+              <Mail className="w-4 h-4" />
+              <span className="truncate">Coordinator: {workspace.coordinator_email}</span>
+            </div>
+          )}
         </div>
       </div>
     </Link>
@@ -249,6 +282,9 @@ function WorkspaceCard({ workspace, onDelete }: { workspace: WorkspaceStats; onD
 function CreateWorkspaceModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('BL');
+  const [githubRepo, setGithubRepo] = useState('');
+  const [ownerEmail, setOwnerEmail] = useState('');
+  const [coordinatorEmail, setCoordinatorEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -265,7 +301,13 @@ function CreateWorkspaceModal({ onClose, onCreated }: { onClose: () => void; onC
       const res = await fetch('/api/workspaces', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), icon }),
+        body: JSON.stringify({
+          name: name.trim(),
+          icon,
+          github_repo: githubRepo.trim() || null,
+          owner_email: ownerEmail.trim() || null,
+          coordinator_email: coordinatorEmail.trim() || null,
+        }),
       });
 
       if (res.ok) {
@@ -320,6 +362,39 @@ function CreateWorkspaceModal({ onClose, onCreated }: { onClose: () => void; onC
               placeholder="e.g., Acme Corp"
               className="w-full bg-mc-bg border border-mc-border rounded-lg px-4 py-2 focus:outline-none focus:border-mc-accent"
               autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">GitHub Repository</label>
+            <input
+              type="text"
+              value={githubRepo}
+              onChange={(e) => setGithubRepo(e.target.value)}
+              placeholder="https://github.com/org/repo"
+              className="w-full bg-mc-bg border border-mc-border rounded-lg px-4 py-2 focus:outline-none focus:border-mc-accent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Owner Email</label>
+            <input
+              type="email"
+              value={ownerEmail}
+              onChange={(e) => setOwnerEmail(e.target.value)}
+              placeholder="owner@company.com"
+              className="w-full bg-mc-bg border border-mc-border rounded-lg px-4 py-2 focus:outline-none focus:border-mc-accent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Coordinator Email</label>
+            <input
+              type="email"
+              value={coordinatorEmail}
+              onChange={(e) => setCoordinatorEmail(e.target.value)}
+              placeholder="coordinator@company.com"
+              className="w-full bg-mc-bg border border-mc-border rounded-lg px-4 py-2 focus:outline-none focus:border-mc-accent"
             />
           </div>
 

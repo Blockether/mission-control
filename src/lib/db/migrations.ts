@@ -651,6 +651,29 @@ const migrations: Migration[] = [
       }
       console.log('[Migration 015] avatar_emoji column dropped');
     }
+  },
+  {
+    id: '016',
+    name: 'add_workspace_metadata_fields',
+    up: (db) => {
+      console.log('[Migration 016] Adding workspace metadata columns...');
+
+      const cols = (db.prepare(`PRAGMA table_info(workspaces)`).all() as { name: string }[]).map(c => c.name);
+
+      if (!cols.includes('github_repo')) {
+        db.exec(`ALTER TABLE workspaces ADD COLUMN github_repo TEXT`);
+      }
+
+      if (!cols.includes('owner_email')) {
+        db.exec(`ALTER TABLE workspaces ADD COLUMN owner_email TEXT`);
+      }
+
+      if (!cols.includes('coordinator_email')) {
+        db.exec(`ALTER TABLE workspaces ADD COLUMN coordinator_email TEXT`);
+      }
+
+      console.log('[Migration 016] Workspace metadata columns added');
+    }
   }
 ];
 

@@ -37,7 +37,7 @@ export async function PATCH(
   
   try {
     const body = await request.json();
-    const { name, description, icon } = body;
+    const { name, description, icon, github_repo, owner_email, coordinator_email } = body;
     
     const db = getDb();
     
@@ -62,6 +62,18 @@ export async function PATCH(
     if (icon !== undefined) {
       updates.push('icon = ?');
       values.push(icon);
+    }
+    if (github_repo !== undefined) {
+      updates.push('github_repo = ?');
+      values.push(github_repo);
+    }
+    if (owner_email !== undefined) {
+      updates.push('owner_email = ?');
+      values.push(owner_email);
+    }
+    if (coordinator_email !== undefined) {
+      updates.push('coordinator_email = ?');
+      values.push(coordinator_email);
     }
     
     if (updates.length === 0) {

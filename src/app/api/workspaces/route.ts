@@ -61,6 +61,9 @@ export async function GET(request: NextRequest) {
           name: workspace.name,
           slug: workspace.slug,
           icon: workspace.icon,
+          github_repo: workspace.github_repo,
+          owner_email: workspace.owner_email,
+          coordinator_email: workspace.coordinator_email,
           taskCounts: counts,
           agentCount: agentCount.count
         };
@@ -81,7 +84,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, icon } = body;
+    const { name, description, icon, github_repo, owner_email, coordinator_email } = body;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -98,9 +101,18 @@ export async function POST(request: NextRequest) {
     }
 
     db.prepare(`
-      INSERT INTO workspaces (id, name, slug, description, icon)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(id, name.trim(), slug, description || null, icon || 'BL');
+      INSERT INTO workspaces (id, name, slug, description, icon, github_repo, owner_email, coordinator_email)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      name.trim(),
+      slug,
+      description || null,
+      icon || 'BL',
+      github_repo || null,
+      owner_email || null,
+      coordinator_email || null
+    );
 
     // Clone workflow templates and bootstrap core agents for the new workspace
     cloneWorkflowTemplates(db, id);
