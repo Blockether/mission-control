@@ -165,6 +165,26 @@ export function Header({ workspace, isPortrait = true }: HeaderProps) {
               </div>
             </div>
           </div>
+
+          <nav className="flex items-center gap-1 overflow-x-auto -mx-3 px-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {navItems.map((item) => {
+              const isActive = activeNavItem?.href === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors shrink-0 ${
+                    isActive
+                      ? 'bg-mc-accent text-white font-medium'
+                      : 'text-mc-text-secondary hover:text-mc-text hover:bg-mc-bg-tertiary'
+                  }`}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
         </>
       ) : (
         <>

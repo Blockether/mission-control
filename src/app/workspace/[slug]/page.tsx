@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, ListTodo, Users, Activity, Settings as SettingsIcon, ExternalLink, Home, BarChart3, Folder } from 'lucide-react';
+import { ChevronLeft, ListTodo, Users, Activity } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { AgentsSidebar } from '@/components/AgentsSidebar';
 import { MissionQueue } from '@/components/MissionQueue';
@@ -15,7 +15,7 @@ import { useSSE } from '@/hooks/useSSE';
 import { debug } from '@/lib/debug';
 import type { Task, Workspace } from '@/lib/types';
 
-type MobileTab = 'queue' | 'agents' | 'feed' | 'settings';
+type MobileTab = 'queue' | 'agents' | 'feed';
 
 export default function WorkspacePage() {
   const params = useParams();
@@ -203,8 +203,6 @@ export default function WorkspacePage() {
     );
   }
 
-  const showMobileBottomTabs = isPortrait;
-
   return (
     <div className="h-screen flex flex-col bg-mc-bg overflow-hidden">
       <Header workspace={workspace} isPortrait={isPortrait} />
@@ -215,31 +213,57 @@ export default function WorkspacePage() {
         <LiveFeed />
       </div>
 
-      <div
-        className={`lg:hidden flex-1 overflow-hidden ${
-          showMobileBottomTabs ? 'pb-[calc(4.5rem+env(safe-area-inset-bottom))]' : 'pb-[env(safe-area-inset-bottom)]'
-        }`}
-      >
+      <div className="lg:hidden flex-1 overflow-hidden pb-[env(safe-area-inset-bottom)]">
         {isPortrait ? (
-          <>
-            {mobileTab === 'queue' && <MissionQueue workspaceId={workspace.id} mobileMode isPortrait />}
-            {mobileTab === 'agents' && (
-              <div className="h-full p-3 overflow-y-auto">
-                <AgentsSidebar workspaceId={workspace.id} mobileMode isPortrait />
-              </div>
-            )}
-            {mobileTab === 'feed' && (
-              <div className="h-full p-3 overflow-y-auto">
-                <LiveFeed mobileMode isPortrait />
-              </div>
-            )}
-            {mobileTab === 'settings' && <MobileSettingsPanel workspace={workspace} />}
-          </>
+          <div className="h-full flex flex-col">
+            <div className="flex items-center gap-1 px-3 py-2 border-b border-mc-border bg-mc-bg-secondary shrink-0">
+              <button
+                onClick={() => setMobileTab('queue')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  mobileTab === 'queue' ? 'bg-mc-accent text-white' : 'text-mc-text-secondary hover:text-mc-text'
+                }`}
+              >
+                <ListTodo className="w-4 h-4" />
+                Queue
+              </button>
+              <button
+                onClick={() => setMobileTab('agents')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  mobileTab === 'agents' ? 'bg-mc-accent text-white' : 'text-mc-text-secondary hover:text-mc-text'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Agents
+              </button>
+              <button
+                onClick={() => setMobileTab('feed')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  mobileTab === 'feed' ? 'bg-mc-accent text-white' : 'text-mc-text-secondary hover:text-mc-text'
+                }`}
+              >
+                <Activity className="w-4 h-4" />
+                Feed
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {mobileTab === 'queue' && <MissionQueue workspaceId={workspace.id} mobileMode isPortrait />}
+              {mobileTab === 'agents' && (
+                <div className="h-full p-3 overflow-y-auto">
+                  <AgentsSidebar workspaceId={workspace.id} mobileMode isPortrait />
+                </div>
+              )}
+              {mobileTab === 'feed' && (
+                <div className="h-full p-3 overflow-y-auto">
+                  <LiveFeed mobileMode isPortrait />
+                </div>
+              )}
+            </div>
+          </div>
         ) : (
           <div className="h-full p-3 grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-3">
             <MissionQueue workspaceId={workspace.id} mobileMode isPortrait={false} />
             <div className="min-w-0 h-full flex flex-col gap-3">
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setMobileTab('agents')}
                   className={`min-h-11 rounded-lg text-xs ${mobileTab === 'agents' ? 'bg-mc-accent text-white font-medium' : 'bg-mc-bg-secondary border border-mc-border text-mc-text-secondary'}`}
@@ -252,18 +276,10 @@ export default function WorkspacePage() {
                 >
                   Feed
                 </button>
-                <button
-                  onClick={() => setMobileTab('settings')}
-                  className={`min-h-11 rounded-lg text-xs ${mobileTab === 'settings' ? 'bg-mc-accent text-white font-medium' : 'bg-mc-bg-secondary border border-mc-border text-mc-text-secondary'}`}
-                >
-                  Settings
-                </button>
               </div>
 
               <div className="min-h-0 flex-1">
-                {mobileTab === 'settings' ? (
-                  <MobileSettingsPanel workspace={workspace} denseLandscape />
-                ) : mobileTab === 'agents' ? (
+                {mobileTab === 'agents' ? (
                   <AgentsSidebar workspaceId={workspace.id} mobileMode isPortrait={false} />
                 ) : (
                   <LiveFeed mobileMode isPortrait={false} />
@@ -274,78 +290,7 @@ export default function WorkspacePage() {
         )}
       </div>
 
-      {showMobileBottomTabs && (
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-mc-border bg-mc-bg-secondary pb-[env(safe-area-inset-bottom)]">
-          <div className="grid grid-cols-4 gap-1 p-2">
-            <MobileTabButton label="Queue" active={mobileTab === 'queue'} icon={<ListTodo className="w-5 h-5" />} onClick={() => setMobileTab('queue')} />
-            <MobileTabButton label="Agents" active={mobileTab === 'agents'} icon={<Users className="w-5 h-5" />} onClick={() => setMobileTab('agents')} />
-            <MobileTabButton label="Feed" active={mobileTab === 'feed'} icon={<Activity className="w-5 h-5" />} onClick={() => setMobileTab('feed')} />
-            <MobileTabButton label="Settings" active={mobileTab === 'settings'} icon={<SettingsIcon className="w-5 h-5" />} onClick={() => setMobileTab('settings')} />
-          </div>
-        </nav>
-      )}
-
       <SSEDebugPanel />
-    </div>
-  );
-}
-
-function MobileTabButton({ label, active, icon, onClick }: { label: string; active: boolean; icon: ReactNode; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`min-h-11 rounded-lg flex flex-col items-center justify-center text-xs ${
-        active ? 'bg-mc-accent text-white font-medium' : 'text-mc-text-secondary'
-      }`}
-    >
-      {icon}
-      <span>{label}</span>
-    </button>
-  );
-}
-
-function MobileSettingsPanel({ workspace, denseLandscape = false }: { workspace: Workspace; denseLandscape?: boolean }) {
-  return (
-    <div className={`h-full overflow-y-auto ${denseLandscape ? 'p-0 pb-[env(safe-area-inset-bottom)]' : 'p-3 pb-[calc(1rem+env(safe-area-inset-bottom))]'}`}>
-      <div className="space-y-3">
-        <div className="bg-mc-bg-secondary border border-mc-border rounded-lg p-4">
-          <div className="text-sm text-mc-text-secondary mb-2">Current workspace</div>
-          <div className="flex items-center gap-2 text-base font-medium">
-            {workspace.logo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={workspace.logo_url} alt={workspace.name} className="w-4 h-4 rounded object-contain" />
-            ) : (
-              <Folder className="w-4 h-4 text-mc-accent" />
-            )}
-            <span>{workspace.name}</span>
-          </div>
-          <div className="text-xs text-mc-text-secondary mt-1">/{workspace.slug}</div>
-        </div>
-
-
-        <Link href={`/workspace/${workspace.slug}/activity`} className="w-full min-h-11 px-4 rounded-lg border border-mc-border bg-mc-bg-secondary flex items-center justify-between text-sm">
-          <span className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />
-            Agent Activity Dashboard
-          </span>
-          <ExternalLink className="w-4 h-4 text-mc-text-secondary" />
-        </Link>
-        <Link href="/settings" className="w-full min-h-11 px-4 rounded-lg border border-mc-border bg-mc-bg-secondary flex items-center justify-between text-sm">
-          <span className="flex items-center gap-2">
-            <SettingsIcon className="w-4 h-4" />
-            Open Blockether Settings
-          </span>
-          <ExternalLink className="w-4 h-4 text-mc-text-secondary" />
-        </Link>
-
-        <Link href="/" className="w-full min-h-11 px-4 rounded-lg border border-mc-border bg-mc-bg-secondary flex items-center justify-between text-sm">
-          <span className="flex items-center gap-2">
-            <Home className="w-4 h-4" />
-            Back to Workspaces
-          </span>
-          <ExternalLink className="w-4 h-4 text-mc-text-secondary" />
-        </Link>
-      </div>
     </div>
   );
 }

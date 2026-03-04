@@ -22,8 +22,6 @@ interface MissionControlState {
   selectedTask: Task | null;
   isOnline: boolean;
   isLoading: boolean;
-  selectedBusiness: string;
-
   // Actions
   setAgents: (agents: Agent[]) => void;
   setTasks: (tasks: Task[]) => void;
@@ -37,8 +35,6 @@ interface MissionControlState {
   setSelectedTask: (task: Task | null) => void;
   setIsOnline: (online: boolean) => void;
   setIsLoading: (loading: boolean) => void;
-  setSelectedBusiness: (business: string) => void;
-
   // Task mutations
   updateTaskStatus: (taskId: string, status: TaskStatus) => void;
   updateTask: (task: Task) => void;
@@ -69,7 +65,7 @@ export const useMissionControl = create<MissionControlState>((set) => ({
   selectedTask: null,
   isOnline: false,
   isLoading: true,
-  selectedBusiness: 'all',
+
 
   // Setters
   setAgents: (agents) => set({ agents }),
@@ -95,7 +91,7 @@ export const useMissionControl = create<MissionControlState>((set) => ({
     set({ isOnline: online });
   },
   setIsLoading: (loading) => set({ isLoading: loading }),
-  setSelectedBusiness: (business) => set({ selectedBusiness: business }),
+
 
   // Task mutations
   updateTaskStatus: (taskId, status) => {

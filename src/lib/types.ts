@@ -53,18 +53,6 @@ export interface Agent {
   updated_at: string;
 }
 
-// Agent discovered from the OpenClaw Gateway (not yet imported)
-export interface DiscoveredAgent {
-  id: string;
-  name: string;
-  label?: string;
-  model?: string;
-  channel?: string;
-  status?: string;
-  already_imported: boolean;
-  existing_agent_id?: string;
-}
-
 export interface Milestone {
   id: string;
   workspace_id: string;
