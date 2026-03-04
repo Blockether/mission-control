@@ -191,8 +191,8 @@ export function AgentActivityDashboard({ workspace }: AgentActivityDashboardProp
   if (loading) {
     return (
       <div className="min-h-screen bg-mc-bg flex items-center justify-center">
-        <div className="text-center">
-          <Image src="/logo.png" alt="Blockether" width={40} height={40} className="mb-3 animate-pulse rounded" />
+        <div className="flex flex-col items-center">
+          <Image src="/logo.png" alt="Blockether" width={40} height={40} priority className="mb-3 animate-pulse rounded" />
           <p className="text-mc-text-secondary">Loading activity dashboard...</p>
         </div>
       </div>
