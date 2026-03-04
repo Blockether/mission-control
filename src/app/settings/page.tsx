@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Settings, Save, RotateCcw, ChevronLeft, Link as LinkIcon, Check, X, Wifi, WifiOff } from 'lucide-react';
-import { getConfig, updateConfig, resetConfig, type MissionControlConfig } from '@/lib/config';
+import { Settings, Save, ChevronLeft, Link as LinkIcon, Check, X, Wifi, WifiOff } from 'lucide-react';
+import { getConfig, updateConfig, type MissionControlConfig } from '@/lib/config';
 
 interface GatewayStatus {
   connected: boolean;
@@ -69,15 +69,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleReset = () => {
-    if (confirm('Reset all settings to defaults? This cannot be undone.')) {
-      resetConfig();
-      setConfig(getConfig());
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    }
-  };
-
   const handleChange = (field: keyof MissionControlConfig, value: string) => {
     if (!config) return;
     setConfig({ ...config, [field]: value });
@@ -109,24 +100,14 @@ export default function SettingsPage() {
               <h1 className="text-xl sm:text-2xl font-bold text-mc-text">Settings</h1>
             </div>
 
-            <div className="flex items-center gap-2 ml-9 sm:ml-0">
-              <button
-                onClick={handleReset}
-                className="px-3 py-2 border border-mc-border rounded hover:bg-mc-bg-tertiary text-mc-text-secondary flex items-center gap-2 text-sm"
-              >
-                <RotateCcw className="w-4 h-4" />
-                <span className="hidden sm:inline">Reset to Defaults</span>
-                <span className="sm:hidden">Reset</span>
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="px-3 py-2 bg-mc-accent text-white rounded hover:bg-mc-accent/90 flex items-center gap-2 disabled:opacity-50 text-sm"
-              >
-                <Save className="w-4 h-4" />
-                {isSaving ? 'Saving...' : 'Save'}
-              </button>
-            </div>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="ml-9 sm:ml-0 px-4 py-2 bg-mc-accent text-white rounded hover:bg-mc-accent/90 flex items-center gap-2 disabled:opacity-50 text-sm"
+            >
+              <Save className="w-4 h-4" />
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
           </div>
         </div>
       </div>
