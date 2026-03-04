@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     db.prepare(`
       INSERT INTO workspaces (id, name, slug, description, icon)
       VALUES (?, ?, ?, ?, ?)
-    `).run(id, name.trim(), slug, description || null, icon || '📁');
+    `).run(id, name.trim(), slug, description || null, icon || 'BL');
 
     // Clone workflow templates and bootstrap core agents for the new workspace
     cloneWorkflowTemplates(db, id);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { queryOne, run } from '@/lib/db';
+import { writeAgentFieldToConfig, writeAgentMdFile, readAgentMdFromDisk, readAgentDescriptionFromDisk } from '@/lib/openclaw/config';
 import type { Agent, UpdateAgentRequest } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,15 @@ export async function GET(
 
     if (!agent) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+    }
+
+    if (agent.source === 'synced') {
+      const mdFiles = readAgentMdFromDisk(agent.agent_workspace_path);
+      agent.soul_md = mdFiles.soul_md ?? undefined;
+      agent.user_md = mdFiles.user_md ?? undefined;
+      agent.agents_md = mdFiles.agents_md ?? undefined;
+      const systemMd = readAgentDescriptionFromDisk(agent.agent_dir);
+      if (systemMd) agent.description = systemMd;
     }
 
     return NextResponse.json(agent);
@@ -53,10 +63,6 @@ export async function PATCH(
       updates.push('description = ?');
       values.push(body.description);
     }
-    if (body.avatar_emoji !== undefined) {
-      updates.push('avatar_emoji = ?');
-      values.push(body.avatar_emoji);
-    }
     if (body.status !== undefined) {
       updates.push('status = ?');
       values.push(body.status);
@@ -73,15 +79,16 @@ export async function PATCH(
       updates.push('is_master = ?');
       values.push(body.is_master ? 1 : 0);
     }
-    if (body.soul_md !== undefined) {
+    const isSynced = existing.source === 'synced';
+    if (body.soul_md !== undefined && !isSynced) {
       updates.push('soul_md = ?');
       values.push(body.soul_md);
     }
-    if (body.user_md !== undefined) {
+    if (body.user_md !== undefined && !isSynced) {
       updates.push('user_md = ?');
       values.push(body.user_md);
     }
-    if (body.agents_md !== undefined) {
+    if (body.agents_md !== undefined && !isSynced) {
       updates.push('agents_md = ?');
       values.push(body.agents_md);
     }
@@ -100,7 +107,39 @@ export async function PATCH(
 
     run(`UPDATE agents SET ${updates.join(', ')} WHERE id = ?`, values);
 
+    if (existing.source === 'synced' && existing.gateway_agent_id) {
+      const gatewayId = existing.gateway_agent_id;
+
+      if (body.name !== undefined) {
+        writeAgentFieldToConfig(gatewayId, 'identity.name', body.name);
+      }
+      if (body.model !== undefined) {
+        writeAgentFieldToConfig(gatewayId, 'model', body.model);
+      }
+
+      const workspacePath = existing.agent_workspace_path;
+      if (workspacePath) {
+        if (body.soul_md !== undefined) {
+          writeAgentMdFile(workspacePath, 'SOUL.md', body.soul_md);
+        }
+        if (body.user_md !== undefined) {
+          writeAgentMdFile(workspacePath, 'USER.md', body.user_md);
+        }
+        if (body.agents_md !== undefined) {
+          writeAgentMdFile(workspacePath, 'AGENTS.md', body.agents_md);
+        }
+      }
+    }
+
     const agent = queryOne<Agent>('SELECT * FROM agents WHERE id = ?', [id]);
+    if (agent && agent.source === 'synced') {
+      const mdFiles = readAgentMdFromDisk(agent.agent_workspace_path);
+      agent.soul_md = mdFiles.soul_md ?? undefined;
+      agent.user_md = mdFiles.user_md ?? undefined;
+      agent.agents_md = mdFiles.agents_md ?? undefined;
+      const systemMd = readAgentDescriptionFromDisk(agent.agent_dir);
+      if (systemMd) agent.description = systemMd;
+    }
     return NextResponse.json(agent);
   } catch (error) {
     console.error('Failed to update agent:', error);

@@ -89,7 +89,7 @@ If agents disagree:
 `;
 
 async function seed() {
-  console.log('🌱 Seeding database...');
+  console.log('[Seed] Seeding database...');
 
   const db = getDb();
   const now = new Date().toISOString();
@@ -103,14 +103,13 @@ async function seed() {
   // Create master orchestrator agent
   const orchestratorId = uuidv4();
   db.prepare(
-    `INSERT INTO agents (id, name, role, description, avatar_emoji, status, is_master, soul_md, user_md, agents_md, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO agents (id, name, role, description, status, is_master, soul_md, user_md, agents_md, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     orchestratorId,
     'Orchestrator',
     'Team Lead & Orchestrator',
     'The master orchestrator who coordinates all agents and manages the mission queue',
-    '🦞',
     'standby',
     1,
     ORCHESTRATOR_SOUL_MD,
@@ -122,10 +121,10 @@ async function seed() {
 
   // Create some example agents
   const agents = [
-    { name: 'Developer', role: 'Code & Automation', emoji: '💻', desc: 'Writes code, creates automations, handles technical tasks' },
-    { name: 'Researcher', role: 'Research & Analysis', emoji: '🔍', desc: 'Gathers information, analyzes data, provides insights' },
-    { name: 'Writer', role: 'Content & Documentation', emoji: '✍️', desc: 'Creates content, writes documentation, handles communications' },
-    { name: 'Designer', role: 'Creative & Design', emoji: '🎨', desc: 'Handles visual design, UX decisions, creative work' },
+    { name: 'Developer', role: 'Code & Automation', desc: 'Writes code, creates automations, handles technical tasks' },
+    { name: 'Researcher', role: 'Research & Analysis', desc: 'Gathers information, analyzes data, provides insights' },
+    { name: 'Writer', role: 'Content & Documentation', desc: 'Creates content, writes documentation, handles communications' },
+    { name: 'Designer', role: 'Creative & Design', desc: 'Handles visual design, UX decisions, creative work' },
   ];
 
   const agentIds: string[] = [orchestratorId];
@@ -134,9 +133,9 @@ async function seed() {
     const agentId = uuidv4();
     agentIds.push(agentId);
     db.prepare(
-      `INSERT INTO agents (id, name, role, description, avatar_emoji, status, is_master, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(agentId, agent.name, agent.role, agent.desc, agent.emoji, 'standby', 0, now, now);
+      `INSERT INTO agents (id, name, role, description, status, is_master, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(agentId, agent.name, agent.role, agent.desc, 'standby', 0, now, now);
   }
 
   // Create a team conversation
@@ -195,12 +194,12 @@ async function seed() {
     uuidv4(),
     teamConvoId,
     orchestratorId,
-    "Welcome to Mission Control, team! 🦞 I'm your orchestrator. Let's get to work.",
+    "Welcome to Mission Control, team. I'm your orchestrator. Let's get to work.",
     'text',
     now
   );
 
-  console.log('✅ Database seeded successfully!');
+  console.log('[Seed] Database seeded successfully!');
   console.log(`   - Created Orchestrator (master agent): ${orchestratorId}`);
   console.log(`   - Created ${agents.length} additional agents`);
   console.log(`   - Created ${tasks.length} sample tasks`);

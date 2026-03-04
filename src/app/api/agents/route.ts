@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { queryAll, queryOne, run } from '@/lib/db';
+import { readAgentMdFromDisk, readAgentDescriptionFromDisk } from '@/lib/openclaw/config';
+import { ensureSynced } from '@/lib/openclaw/sync';
 import type { Agent, CreateAgentRequest } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -8,16 +10,29 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const workspaceId = request.nextUrl.searchParams.get('workspace_id');
-    
+
+    ensureSynced();
+
     let agents: Agent[];
     if (workspaceId) {
       agents = queryAll<Agent>(`
-        SELECT * FROM agents WHERE workspace_id = ? ORDER BY is_master DESC, name ASC
+        SELECT * FROM agents WHERE workspace_id = ? OR source = 'synced'
+        ORDER BY is_master DESC, name ASC
       `, [workspaceId]);
     } else {
       agents = queryAll<Agent>(`
         SELECT * FROM agents ORDER BY is_master DESC, name ASC
       `);
+    }
+    for (const agent of agents) {
+      if (agent.source === 'synced') {
+        const mdFiles = readAgentMdFromDisk(agent.agent_workspace_path);
+        agent.soul_md = mdFiles.soul_md ?? undefined;
+        agent.user_md = mdFiles.user_md ?? undefined;
+        agent.agents_md = mdFiles.agents_md ?? undefined;
+        const systemMd = readAgentDescriptionFromDisk(agent.agent_dir);
+        if (systemMd) agent.description = systemMd;
+      }
     }
     return NextResponse.json(agents);
   } catch (error) {
@@ -39,14 +54,13 @@ export async function POST(request: NextRequest) {
     const now = new Date().toISOString();
 
     run(
-      `INSERT INTO agents (id, name, role, description, avatar_emoji, is_master, workspace_id, soul_md, user_md, agents_md, model, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO agents (id, name, role, description, is_master, workspace_id, soul_md, user_md, agents_md, model, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         body.name,
         body.role,
         body.description || null,
-        body.avatar_emoji || '🤖',
         body.is_master ? 1 : 0,
         (body as { workspace_id?: string }).workspace_id || 'default',
         body.soul_md || null,

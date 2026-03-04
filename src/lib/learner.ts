@@ -49,11 +49,11 @@ export async function notifyLearner(
 
   const missionControlUrl = getMissionControlUrl();
 
-  const learningMessage = `📚 **STAGE TRANSITION — LEARNING CAPTURE**
+  const learningMessage = `**STAGE TRANSITION — LEARNING CAPTURE**
 
 **Task:** ${task.title} (${taskId})
 **Transition:** ${event.previousStatus} → ${event.newStatus}
-**Result:** ${event.passed ? 'PASSED ✅' : 'FAILED ❌'}
+**Result:** ${event.passed ? 'PASSED' : 'FAILED'}
 ${event.failReason ? `**Failure Reason:** ${event.failReason}` : ''}
 ${event.context ? `**Context:** ${event.context}` : ''}
 
@@ -143,5 +143,5 @@ export function formatKnowledgeForDispatch(entries: KnowledgeEntry[]): string {
     `${i + 1}. **${e.title}** (${e.category}, confidence: ${(e.confidence * 100).toFixed(0)}%)\n   ${e.content}`
   ).join('\n\n');
 
-  return `\n---\n📚 **PREVIOUS LESSONS LEARNED:**\n${items}\n\nKeep these in mind to avoid repeating past mistakes.\n`;
+  return `\n---\n**PREVIOUS LESSONS LEARNED:**\n${items}\n\nKeep these in mind to avoid repeating past mistakes.\n`;
 }

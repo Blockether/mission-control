@@ -114,8 +114,7 @@ export async function GET(
     const sessions = db.prepare(`
       SELECT 
         s.*,
-        a.name as agent_name,
-        a.avatar_emoji as agent_avatar_emoji
+        a.name as agent_name
       FROM openclaw_sessions s
       LEFT JOIN agents a ON s.agent_id = a.id
       WHERE s.task_id = ? AND s.session_type = 'subagent'

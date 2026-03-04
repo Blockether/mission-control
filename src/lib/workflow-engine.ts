@@ -65,7 +65,7 @@ function parseTemplate(row: { id: string; workspace_id: string; name: string; de
  */
 export function getTaskRoles(taskId: string): TaskRole[] {
   return queryAll<TaskRole>(
-    `SELECT tr.*, a.name as agent_name, a.avatar_emoji
+    `SELECT tr.*, a.name as agent_name
      FROM task_roles tr
      LEFT JOIN agents a ON tr.agent_id = a.id
      WHERE tr.task_id = ?`,

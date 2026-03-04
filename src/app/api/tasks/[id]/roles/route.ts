@@ -18,9 +18,9 @@ export async function GET(
   try {
     const roles = queryAll<{
       id: string; task_id: string; role: string; agent_id: string;
-      created_at: string; agent_name: string; agent_emoji: string;
+      created_at: string; agent_name: string;
     }>(
-      `SELECT tr.*, a.name as agent_name, a.avatar_emoji as agent_emoji
+      `SELECT tr.*, a.name as agent_name
        FROM task_roles tr
        JOIN agents a ON tr.agent_id = a.id
        WHERE tr.task_id = ?
@@ -91,7 +91,7 @@ export async function PUT(
 
     // Fetch and return updated roles
     const updatedRoles = queryAll(
-      `SELECT tr.*, a.name as agent_name, a.avatar_emoji as agent_emoji
+      `SELECT tr.*, a.name as agent_name
        FROM task_roles tr
        JOIN agents a ON tr.agent_id = a.id
        WHERE tr.task_id = ?
@@ -99,9 +99,8 @@ export async function PUT(
       [taskId]
     );
 
-    // Broadcast task update
     const updatedTask = queryOne<Task>(
-      `SELECT t.*, aa.name as assigned_agent_name, aa.avatar_emoji as assigned_agent_emoji
+      `SELECT t.*, aa.name as assigned_agent_name
        FROM tasks t LEFT JOIN agents aa ON t.assigned_agent_id = aa.id WHERE t.id = ?`,
       [taskId]
     );

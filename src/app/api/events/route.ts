@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const since = searchParams.get('since'); // ISO timestamp for polling
 
     let sql = `
-      SELECT e.*, a.name as agent_name, a.avatar_emoji as agent_emoji, t.title as task_title
+      SELECT e.*, a.name as agent_name, t.title as task_title
       FROM events e
       LEFT JOIN agents a ON e.agent_id = a.id
       LEFT JOIN tasks t ON e.task_id = t.id
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     sql += ' ORDER BY e.created_at DESC LIMIT ?';
     params.push(limit);
 
-    const events = queryAll<Event & { agent_name?: string; agent_emoji?: string; task_title?: string }>(sql, params);
+    const events = queryAll<Event & { agent_name?: string; task_title?: string }>(sql, params);
 
     // Transform to include nested info
     const transformedEvents = events.map((event) => ({
@@ -37,7 +37,6 @@ export async function GET(request: NextRequest) {
         ? {
             id: event.agent_id,
             name: event.agent_name,
-            avatar_emoji: event.agent_emoji,
           }
         : undefined,
       task: event.task_id

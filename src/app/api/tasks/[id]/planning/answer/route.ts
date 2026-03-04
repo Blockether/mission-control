@@ -71,7 +71,6 @@ If planning is complete, respond with JSON:
     {
       "name": "Agent Name",
       "role": "Agent role",
-      "avatar_emoji": "🎯",
       "soul_md": "Agent personality...",
       "instructions": "Specific instructions..."
     }

@@ -33,8 +33,8 @@ async function handlePlanningCompletion(taskId: string, parsed: any, messages: a
 
     if (allowDynamicAgents && parsed.agents && parsed.agents.length > 0) {
       const insertAgent = db.prepare(`
-        INSERT INTO agents (id, workspace_id, name, role, description, avatar_emoji, status, soul_md, created_at, updated_at)
-        VALUES (?, (SELECT workspace_id FROM tasks WHERE id = ?), ?, ?, ?, ?, 'standby', ?, datetime('now'), datetime('now'))
+        INSERT INTO agents (id, workspace_id, name, role, description, status, soul_md, created_at, updated_at)
+        VALUES (?, (SELECT workspace_id FROM tasks WHERE id = ?), ?, ?, ?, 'standby', ?, datetime('now'), datetime('now'))
       `);
 
       for (const agent of parsed.agents) {
@@ -47,7 +47,6 @@ async function handlePlanningCompletion(taskId: string, parsed: any, messages: a
           agent.name,
           agent.role,
           agent.instructions || '',
-          agent.avatar_emoji || '🤖',
           agent.soul_md || ''
         );
       }
@@ -231,7 +230,6 @@ export async function GET(
             agents?: Array<{
               name: string;
               role: string;
-              avatar_emoji?: string;
               soul_md?: string;
               instructions?: string;
             }>;

@@ -134,12 +134,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Build task message for agent
-    const priorityEmoji = {
-      low: '🔵',
-      normal: '⚪',
-      high: '🟡',
-      urgent: '🔴'
-    }[task.priority] || '⚪';
+    const priorityLabel = {
+      low: 'LOW',
+      normal: 'NORMAL',
+      high: 'HIGH',
+      urgent: 'URGENT'
+    }[task.priority] || 'NORMAL';
 
     // Get project path for deliverables
     const projectsPath = getProjectsPath();
@@ -157,10 +157,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         const spec = JSON.parse(rawTask.planning_spec);
         // planning_spec may be an object with spec_markdown, or a raw string
         const specText = typeof spec === 'string' ? spec : (spec.spec_markdown || JSON.stringify(spec, null, 2));
-        planningSpecSection = `\n---\n**📋 PLANNING SPECIFICATION:**\n${specText}\n`;
+        planningSpecSection = `\n---\n**PLANNING SPECIFICATION:**\n${specText}\n`;
       } catch {
         // If not valid JSON, treat as plain text
-        planningSpecSection = `\n---\n**📋 PLANNING SPECIFICATION:**\n${rawTask.planning_spec}\n`;
+        planningSpecSection = `\n---\n**PLANNING SPECIFICATION:**\n${rawTask.planning_spec}\n`;
       }
     }
 
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               a.agent_id === agent.id || a.name === agent.name
           );
           if (myInstructions?.instructions) {
-            agentInstructionsSection = `\n**🎯 YOUR INSTRUCTIONS:**\n${myInstructions.instructions}\n`;
+            agentInstructionsSection = `\n**YOUR INSTRUCTIONS:**\n${myInstructions.instructions}\n`;
           } else {
             // Include all agent instructions for context
             const allInstructions = agents
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               )
               .join('\n');
             if (allInstructions) {
-              agentInstructionsSection = `\n**🎯 AGENT INSTRUCTIONS:**\n${allInstructions}\n`;
+              agentInstructionsSection = `\n**AGENT INSTRUCTIONS:**\n${allInstructions}\n`;
             }
           }
         }
@@ -276,7 +276,7 @@ Reply with: \`VERIFY_PASS: [summary]\` or \`VERIFY_FAIL: [what failed]\``;
     }
 
     const roleLabel = currentStage?.label || 'Task';
-    const taskMessage = `${priorityEmoji} **${isBuilder ? 'NEW TASK ASSIGNED' : `${roleLabel.toUpperCase()} STAGE — ${task.title}`}**
+    const taskMessage = `[${priorityLabel}] **${isBuilder ? 'NEW TASK ASSIGNED' : `${roleLabel.toUpperCase()} STAGE — ${task.title}`}**
 
 **Title:** ${task.title}
 ${task.description ? `**Description:** ${task.description}\n` : ''}

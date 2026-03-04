@@ -9,7 +9,7 @@ function generateSpecMarkdown(task: { title: string; description?: string }, que
   
   lines.push(`# ${task.title}`);
   lines.push('');
-  lines.push('**Status:** SPEC LOCKED ✅');
+  lines.push('**Status:** SPEC LOCKED');
   lines.push('');
   
   if (task.description) {
@@ -26,14 +26,14 @@ function generateSpecMarkdown(task: { title: string; description?: string }, que
   }, {} as Record<string, PlanningQuestion[]>);
 
   const categoryLabels: Record<PlanningCategory, string> = {
-    goal: '🎯 Goal & Success Criteria',
-    audience: '👥 Target Audience',
-    scope: '📋 Scope',
-    design: '🎨 Design & Visual',
-    content: '📝 Content',
-    technical: '⚙️ Technical Requirements',
-    timeline: '📅 Timeline',
-    constraints: '⚠️ Constraints'
+    goal: 'Goal & Success Criteria',
+    audience: 'Target Audience',
+    scope: 'Scope',
+    design: 'Design & Visual',
+    content: 'Content',
+    technical: 'Technical Requirements',
+    timeline: 'Timeline',
+    constraints: 'Constraints'
   };
 
   const categoryOrder: PlanningCategory[] = ['goal', 'audience', 'scope', 'design', 'content', 'technical', 'timeline', 'constraints'];

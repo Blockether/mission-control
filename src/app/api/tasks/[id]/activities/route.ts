@@ -28,15 +28,13 @@ export async function GET(
       SELECT 
         a.*,
         ag.id as agent_id,
-        ag.name as agent_name,
-        ag.avatar_emoji as agent_avatar_emoji
+        ag.name as agent_name
       FROM task_activities a
       LEFT JOIN agents ag ON a.agent_id = ag.id
       WHERE a.task_id = ?
       ORDER BY a.created_at DESC
     `).all(taskId) as any[];
 
-    // Transform to include agent object
     const result: TaskActivity[] = activities.map(row => ({
       id: row.id,
       task_id: row.task_id,
@@ -48,7 +46,6 @@ export async function GET(
       agent: row.agent_id ? {
         id: row.agent_id,
         name: row.agent_name,
-        avatar_emoji: row.agent_avatar_emoji,
         role: '',
         status: 'working' as const,
         is_master: false,
@@ -114,8 +111,7 @@ export async function POST(
       SELECT 
         a.*,
         ag.id as agent_id,
-        ag.name as agent_name,
-        ag.avatar_emoji as agent_avatar_emoji
+        ag.name as agent_name
       FROM task_activities a
       LEFT JOIN agents ag ON a.agent_id = ag.id
       WHERE a.id = ?
@@ -132,7 +128,6 @@ export async function POST(
       agent: activity.agent_id ? {
         id: activity.agent_id,
         name: activity.agent_name,
-        avatar_emoji: activity.agent_avatar_emoji,
         role: '',
         status: 'working' as const,
         is_master: false,

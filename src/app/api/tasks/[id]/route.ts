@@ -19,8 +19,7 @@ export async function GET(
     const { id } = await params;
     const task = queryOne<Task>(
       `SELECT t.*,
-        aa.name as assigned_agent_name,
-        aa.avatar_emoji as assigned_agent_emoji
+        aa.name as assigned_agent_name
        FROM tasks t
        LEFT JOIN agents aa ON t.assigned_agent_id = aa.id
        WHERE t.id = ?`,
@@ -217,9 +216,7 @@ export async function PATCH(
     const task = queryOne<Task>(
       `SELECT t.*,
         aa.name as assigned_agent_name,
-        aa.avatar_emoji as assigned_agent_emoji,
-        ca.name as created_by_agent_name,
-        ca.avatar_emoji as created_by_agent_emoji
+        ca.name as created_by_agent_name
        FROM tasks t
        LEFT JOIN agents aa ON t.assigned_agent_id = aa.id
        LEFT JOIN agents ca ON t.created_by_agent_id = ca.id
@@ -287,7 +284,7 @@ export async function PATCH(
         console.log(`[PATCH] Workflow handoff: ${existing.status} → ${nextStatus} → agent ${stageResult.newAgentName}`);
         // Re-fetch task to include updated agent assignment
         const refreshed = queryOne<Task>(
-          `SELECT t.*, aa.name as assigned_agent_name, aa.avatar_emoji as assigned_agent_emoji
+          `SELECT t.*, aa.name as assigned_agent_name
            FROM tasks t LEFT JOIN agents aa ON t.assigned_agent_id = aa.id WHERE t.id = ?`,
           [id]
         );
@@ -328,7 +325,7 @@ export async function PATCH(
       }
       // Re-broadcast with latest state
       const refreshed = queryOne<Task>(
-        `SELECT t.*, aa.name as assigned_agent_name, aa.avatar_emoji as assigned_agent_emoji
+        `SELECT t.*, aa.name as assigned_agent_name
          FROM tasks t LEFT JOIN agents aa ON t.assigned_agent_id = aa.id WHERE t.id = ?`,
         [id]
       );

@@ -96,14 +96,13 @@ export async function POST(request: NextRequest) {
         ].join('\n');
 
         run(
-          `INSERT INTO agents (id, name, role, description, avatar_emoji, is_master, workspace_id, soul_md, user_md, agents_md, model, source, gateway_agent_id, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO agents (id, name, role, description, is_master, workspace_id, soul_md, user_md, agents_md, model, source, gateway_agent_id, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
             agentReq.name,
             'Imported Agent',
             `Imported from OpenClaw Gateway (${agentReq.gateway_agent_id})`,
-            '🔗',
             0,
             workspaceId,
             soulMd,
