@@ -210,22 +210,24 @@ export function AgentActivityDashboard({ workspace, embedded = false }: AgentAct
   if (embedded) {
     return (
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="p-3 border-b border-mc-border flex items-center justify-between gap-2">
+        <div className="p-3 border-b border-mc-border flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <ChevronRight className="w-4 h-4 text-mc-text-secondary" />
             <span className="font-medium">Activity</span>
           </div>
           <div className="flex items-center gap-2">
-            {(['all', 'working', 'blocked', 'idle'] as ActivityFilter[]).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setFilter(tab)}
-                className={`px-3 py-1.5 rounded-full border text-xs capitalize ${filter === tab ? 'bg-mc-accent text-white border-mc-accent' : 'bg-mc-bg-secondary text-mc-text-secondary border-mc-border'}`}
-              >
-                {tab}
-              </button>
-            ))}
-            <div className={`px-2.5 py-1.5 rounded-lg border text-xs flex items-center gap-1.5 ${sseConnected ? 'text-mc-accent-green border-mc-accent-green/40 bg-mc-accent-green/10' : 'text-mc-accent-yellow border-mc-accent-yellow/40 bg-mc-accent-yellow/10'}`}>
+            <div className="flex items-center bg-mc-bg-tertiary rounded-lg p-0.5">
+              {(['all', 'working', 'blocked', 'idle'] as ActivityFilter[]).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setFilter(tab)}
+                  className={`flex items-center px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors min-h-9 capitalize ${filter === tab ? 'bg-mc-accent text-white' : 'text-mc-text-secondary hover:text-mc-text'}`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+            <div className={`px-2.5 py-1.5 rounded-md border text-sm font-medium flex items-center gap-1.5 min-h-9 ${sseConnected ? 'text-mc-accent-green border-mc-accent-green/40 bg-mc-accent-green/10' : 'text-mc-accent-yellow border-mc-accent-yellow/40 bg-mc-accent-yellow/10'}`}>
               <RefreshCw className="w-3.5 h-3.5" />
               {sseConnected ? 'LIVE' : 'FALLBACK'}
             </div>

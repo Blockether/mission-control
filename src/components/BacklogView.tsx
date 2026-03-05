@@ -142,7 +142,7 @@ export function BacklogView({ workspaceId }: BacklogViewProps) {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="p-3 border-b border-mc-border flex items-center justify-between gap-2">
+      <div className="p-3 border-b border-mc-border flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <ChevronRight className="w-4 h-4 text-mc-text-secondary" />
           <span className="font-medium">Backlog</span>
@@ -151,51 +151,51 @@ export function BacklogView({ workspaceId }: BacklogViewProps) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-3 min-h-11 rounded-lg border text-sm font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors min-h-9 border ${
               showFilters ? 'bg-mc-accent text-white border-mc-accent' : 'border-mc-border text-mc-text-secondary hover:bg-mc-bg-tertiary'
             }`}
           >
             <Filter className="w-4 h-4" />
-            Filters
+            <span className="hidden sm:inline">Filters</span>
             {(filterSprint !== 'all' || filterType !== 'all' || filterPriority !== 'all' || filterMilestone !== 'all') && (
               <span className="w-2 h-2 rounded-full bg-mc-accent-green" />
             )}
           </button>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center bg-mc-bg-tertiary rounded-lg p-0.5">
             <button
               onClick={() => toggleSort('created')}
-              className={`flex items-center gap-1 px-2 py-1.5 rounded text-xs ${
-                sortBy === 'created' ? 'bg-mc-accent text-white' : 'bg-mc-bg-tertiary text-mc-text-secondary hover:text-mc-text'
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors min-h-9 ${
+                sortBy === 'created' ? 'bg-mc-accent text-white' : 'text-mc-text-secondary hover:text-mc-text'
               }`}
             >
-              <ArrowUpDown className="w-3 h-3" />
-              Created
+              <ArrowUpDown className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Created</span>
             </button>
             <button
               onClick={() => toggleSort('priority')}
-              className={`flex items-center gap-1 px-2 py-1.5 rounded text-xs ${
-                sortBy === 'priority' ? 'bg-mc-accent text-white' : 'bg-mc-bg-tertiary text-mc-text-secondary hover:text-mc-text'
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors min-h-9 ${
+                sortBy === 'priority' ? 'bg-mc-accent text-white' : 'text-mc-text-secondary hover:text-mc-text'
               }`}
             >
-              <ArrowUpDown className="w-3 h-3" />
-              Priority
+              <ArrowUpDown className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Priority</span>
             </button>
             <button
               onClick={() => toggleSort('title')}
-              className={`flex items-center gap-1 px-2 py-1.5 rounded text-xs ${
-                sortBy === 'title' ? 'bg-mc-accent text-white' : 'bg-mc-bg-tertiary text-mc-text-secondary hover:text-mc-text'
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors min-h-9 ${
+                sortBy === 'title' ? 'bg-mc-accent text-white' : 'text-mc-text-secondary hover:text-mc-text'
               }`}
             >
-              <ArrowUpDown className="w-3 h-3" />
-              Title
+              <ArrowUpDown className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Title</span>
             </button>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 min-h-11 bg-mc-accent text-white rounded text-sm font-medium hover:bg-mc-accent/90"
+            className="flex items-center gap-2 px-4 min-h-9 bg-mc-accent text-white rounded-md text-sm font-medium hover:bg-mc-accent/90"
           >
             <CircleDot className="w-4 h-4" />
-            New Task
+            <span className="hidden sm:inline">New Task</span>
           </button>
         </div>
       </div>
