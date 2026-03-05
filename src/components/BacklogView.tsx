@@ -9,7 +9,7 @@ import {
   FlaskConical,
   Filter,
   Circle,
-  CircleDot,
+  Plus,
   Flag,
   ArrowUpDown,
   Loader2,
@@ -194,7 +194,7 @@ export function BacklogView({ workspaceId }: BacklogViewProps) {
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 px-4 min-h-9 bg-mc-accent text-white rounded-md text-sm font-medium hover:bg-mc-accent/90"
           >
-            <CircleDot className="w-4 h-4" />
+            <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">New Task</span>
           </button>
         </div>
@@ -287,7 +287,7 @@ export function BacklogView({ workspaceId }: BacklogViewProps) {
               onClick={() => setShowCreateModal(true)}
               className="inline-flex items-center gap-2 px-4 min-h-11 bg-mc-accent text-white rounded text-sm font-medium hover:bg-mc-accent/90"
             >
-              <CircleDot className="w-4 h-4" />
+              <Plus className="w-4 h-4" />
               New Task
             </button>
           </div>
