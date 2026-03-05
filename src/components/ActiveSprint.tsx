@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, ChevronDown, CheckCircle2, Loader2, Flag, Users, Calendar, ChevronRight, ArrowRightLeft } from 'lucide-react';
+import { Plus, ChevronDown, CheckCircle2, Loader2, Flag, Users, Calendar, ChevronRight, ArrowRightLeft, LayoutList, Columns3, GripVertical } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import { triggerAutoDispatch, shouldTriggerAutoDispatch } from '@/lib/auto-dispatch';
 import type { Task, TaskStatus, Sprint, Milestone, Agent } from '@/lib/types';
@@ -27,6 +27,17 @@ const STATUS_CONFIG: Record<TaskStatus, { label: string; color: string }> = {
   done: { label: 'Done', color: 'bg-mc-accent-green' },
 };
 
+const BOARD_COLUMN_CONFIG: { status: TaskStatus; borderColor: string }[] = [
+  { status: 'planning', borderColor: 'border-t-purple-600' },
+  { status: 'inbox', borderColor: 'border-t-pink-500' },
+  { status: 'assigned', borderColor: 'border-t-yellow-500' },
+  { status: 'in_progress', borderColor: 'border-t-mc-accent' },
+  { status: 'testing', borderColor: 'border-t-cyan-500' },
+  { status: 'review', borderColor: 'border-t-purple-600' },
+  { status: 'verification', borderColor: 'border-t-orange-500' },
+  { status: 'done', borderColor: 'border-t-green-500' },
+];
+
 const DONE_STATUSES: TaskStatus[] = ['done'];
 
 export function ActiveSprint({ workspaceId, mobileMode = false, isPortrait = true }: ActiveSprintProps) {
@@ -42,6 +53,9 @@ export function ActiveSprint({ workspaceId, mobileMode = false, isPortrait = tru
     const [endingSprint, setEndingSprint] = useState(false);
     const [creatingSprint, setCreatingSprint] = useState(false);
     const [statusMoveTask, setStatusMoveTask] = useState<Task | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
+  const [selectedBoardStatus, setSelectedBoardStatus] = useState<TaskStatus>('planning');
+  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -321,6 +335,26 @@ export function ActiveSprint({ workspaceId, mobileMode = false, isPortrait = tru
           </div>
 
           <div className="flex items-center gap-2">
+            <div className="flex items-center bg-mc-bg-tertiary rounded-lg p-0.5">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors min-h-9 ${
+                  viewMode === 'list' ? 'bg-mc-accent text-white' : 'text-mc-text-secondary hover:text-mc-text'
+                }`}
+              >
+                <LayoutList className="w-4 h-4" />
+                <span className="hidden sm:inline">List</span>
+              </button>
+              <button
+                onClick={() => setViewMode('board')}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors min-h-9 ${
+                  viewMode === 'board' ? 'bg-mc-accent text-white' : 'text-mc-text-secondary hover:text-mc-text'
+                }`}
+              >
+                <Columns3 className="w-4 h-4" />
+                <span className="hidden sm:inline">Board</span>
+              </button>
+            </div>
             {selectedSprint.status === 'active' && (
               <button
                 onClick={handleEndSprint}
@@ -341,7 +375,7 @@ export function ActiveSprint({ workspaceId, mobileMode = false, isPortrait = tru
           </div>
         </div>
 
-        <div className={`flex-1 overflow-y-auto ${isPortrait ? 'p-3 pb-[calc(1rem+env(safe-area-inset-bottom))]' : 'p-3'}`}>
+        <div className={`flex-1 overflow-y-auto ${viewMode === 'board' ? 'overflow-hidden' : ''} ${isPortrait && viewMode === 'list' ? 'p-3 pb-[calc(1rem+env(safe-area-inset-bottom))]' : viewMode === 'list' ? 'p-3' : ''}`}>
           {sprintTasks.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-mc-bg-tertiary flex items-center justify-center">
@@ -350,7 +384,7 @@ export function ActiveSprint({ workspaceId, mobileMode = false, isPortrait = tru
               <h3 className="text-base font-medium mb-1">No Tasks in This Sprint</h3>
               <p className="text-sm text-mc-text-secondary">Use the New Task button above to add tasks.</p>
             </div>
-          ) : (
+          ) : viewMode === 'list' ? (
             <div className={`space-y-6 ${isPortrait ? '' : 'space-y-4'}`}>
               {milestoneOrder.map((milestoneId) => {
                 const milestone = milestones.find((m) => m.id === milestoneId);
@@ -390,6 +424,136 @@ export function ActiveSprint({ workspaceId, mobileMode = false, isPortrait = tru
                   mobileMode={mobileMode}
                 />
               )}
+            </div>
+          ) : mobileMode ? (
+            <div className="flex flex-col h-full">
+              <div className="flex gap-2 p-3 overflow-x-auto border-b border-mc-border flex-shrink-0">
+                {BOARD_COLUMN_CONFIG.map(({ status, borderColor }) => {
+                  const count = sprintTasks.filter((t) => t.status === status).length;
+                  const config = STATUS_CONFIG[status];
+                  const isSelected = selectedBoardStatus === status;
+                  return (
+                    <button
+                      key={status}
+                      onClick={() => setSelectedBoardStatus(status)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap min-h-8 transition-colors ${
+                        isSelected
+                          ? 'bg-mc-accent text-white'
+                          : 'bg-mc-bg-secondary border border-mc-border text-mc-text-secondary hover:text-mc-text'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${config.color}`} />
+                      {config.label}
+                      <span className={`text-xs ${isSelected ? 'text-white/70' : 'text-mc-text-secondary'}`}>({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                {sprintTasks
+                  .filter((t) => t.status === selectedBoardStatus)
+                  .map((task) => (
+                    <div
+                      key={task.id}
+                      onClick={() => setEditingTask(task)}
+                      className="bg-mc-bg-secondary border border-mc-border/50 rounded-lg p-3 cursor-pointer hover:border-mc-accent/40 transition-colors"
+                    >
+                      <div className="flex items-start gap-2 mb-2">
+                        <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${STATUS_CONFIG[task.status].color}`} />
+                        <h4 className="font-medium text-sm line-clamp-2 flex-1">{task.title}</h4>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-mc-text-secondary mb-3">
+                        {task.assigned_agent && (
+                          <div className="flex items-center gap-1.5">
+                            <AgentInitials name={(task.assigned_agent as unknown as { name: string }).name} size="xs" />
+                            <span className="truncate">{(task.assigned_agent as unknown as { name: string }).name}</span>
+                          </div>
+                        )}
+                        <span className="capitalize">{task.priority}</span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setStatusMoveTask(task);
+                        }}
+                        className="w-full min-h-11 rounded-md border border-mc-border bg-mc-bg flex items-center justify-center gap-2 text-mc-text-secondary text-sm hover:bg-mc-bg-tertiary transition-colors"
+                      >
+                        <ArrowRightLeft className="w-4 h-4" />
+                        Move Status
+                      </button>
+                    </div>
+                  ))}
+                {sprintTasks.filter((t) => t.status === selectedBoardStatus).length === 0 && (
+                  <div className="text-center py-8 text-mc-text-secondary text-sm">
+                    No tasks in {STATUS_CONFIG[selectedBoardStatus].label}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex gap-3 p-3 overflow-x-auto">
+              {BOARD_COLUMN_CONFIG.map(({ status, borderColor }) => {
+                const columnTasks = sprintTasks.filter((t) => t.status === status);
+                const config = STATUS_CONFIG[status];
+                return (
+                  <div
+                    key={status}
+                    className={`min-w-[200px] flex-1 max-w-[280px] flex flex-col bg-mc-bg rounded-lg border border-mc-border/50 border-t-2 ${borderColor}`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.add('bg-mc-bg-tertiary/30');
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.classList.remove('bg-mc-bg-tertiary/30');
+                    }}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove('bg-mc-bg-tertiary/30');
+                      if (draggedTask && draggedTask.status !== status) {
+                        await updateTaskStatusWithPersist(draggedTask, status);
+                      }
+                      setDraggedTask(null);
+                    }}
+                  >
+                    <div className="px-3 py-2 border-b border-mc-border/50 flex items-center justify-between flex-shrink-0">
+                      <span className="text-xs font-medium uppercase text-mc-text-secondary tracking-wide">{config.label}</span>
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-mc-bg-tertiary text-mc-text-secondary font-medium">{columnTasks.length}</span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                      {columnTasks.map((task) => (
+                        <div
+                          key={task.id}
+                          draggable
+                          onDragStart={(e) => {
+                            setDraggedTask(task);
+                            e.dataTransfer.effectAllowed = 'move';
+                          }}
+                          onClick={() => setEditingTask(task)}
+                          className="group bg-mc-bg-secondary border border-mc-border/50 rounded-lg p-3 cursor-pointer hover:border-mc-accent/40 hover:shadow-lg transition-all relative"
+                        >
+                          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
+                            <GripVertical className="w-4 h-4 text-mc-text-secondary" />
+                          </div>
+                          <h4 className="font-medium text-sm line-clamp-2 mb-2 pl-4">{task.title}</h4>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`w-2 h-2 rounded-full ${task.priority === 'urgent' ? 'bg-red-500' : task.priority === 'high' ? 'bg-orange-500' : task.priority === 'normal' ? 'bg-yellow-500' : 'bg-gray-400'}`} />
+                            <span className="text-xs text-mc-text-secondary capitalize">{task.priority}</span>
+                          </div>
+                          {task.assigned_agent && (
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <AgentInitials name={(task.assigned_agent as unknown as { name: string }).name} size="xs" />
+                              <span className="text-xs text-mc-text-secondary truncate">{(task.assigned_agent as unknown as { name: string }).name}</span>
+                            </div>
+                          )}
+                          <div className="text-xs text-mc-text-secondary">
+                            {formatDistanceToNow(new Date(task.created_at), { addSuffix: true })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
