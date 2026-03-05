@@ -12,20 +12,24 @@ export function getDb(): Database.Database {
   if (!db) {
     const isNewDb = !fs.existsSync(DB_PATH);
     
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
+    const instance = new Database(DB_PATH);
+    instance.pragma('journal_mode = WAL');
+    instance.pragma('foreign_keys = ON');
 
-    // Initialize base schema (creates tables if they don't exist)
-    db.exec(schema);
+    if (isNewDb) {
+      // Fresh database: create full schema (tables + indexes)
+      instance.exec(schema);
+      console.log('[DB] New database created at:', DB_PATH);
+    }
 
     // Run migrations for schema updates
     // This handles both new and existing databases
-    runMigrations(db);
+    // For new DBs, migrations are no-ops (tables already exist)
+    // For existing DBs, migrations add new tables/columns/indexes
+    runMigrations(instance);
     
-    if (isNewDb) {
-      console.log('[DB] New database created at:', DB_PATH);
-    }
+    // Only assign singleton AFTER successful initialization
+    db = instance;
   }
   return db;
 }
