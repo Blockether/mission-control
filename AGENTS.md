@@ -32,6 +32,8 @@ Before every commit:
 6. **Component traceability**: If you created or renamed a React component, verify its root DOM element has `data-component="src/path/to/File"` (relative path, no extension).
 7. **Test the deploy**: After committing, deploy with `scripts/deploy.sh` and verify https://control.blockether.com responds 200.
 
+8. **Always deploy after commit**: Every commit MUST be followed by `scripts/deploy.sh` and `git push origin main`. No orphan commits.
+
 Quick validation: `scripts/check.sh` runs lint + validate + build in one shot.
 
 ## References

@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const since = searchParams.get('since'); // ISO timestamp for polling
+    const workspaceId = searchParams.get('workspace_id');
 
     let sql = `
       SELECT e.*, a.name as agent_name, t.title as task_title
@@ -19,6 +20,11 @@ export async function GET(request: NextRequest) {
       WHERE 1=1
     `;
     const params: unknown[] = [];
+
+    if (workspaceId) {
+      sql += ' AND (t.workspace_id = ? OR (t.id IS NULL AND a.workspace_id = ?) OR (t.id IS NULL AND a.id IS NULL))';
+      params.push(workspaceId, workspaceId);
+    }
 
     if (since) {
       sql += ' AND e.created_at > ?';

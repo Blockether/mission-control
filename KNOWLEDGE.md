@@ -314,6 +314,7 @@ Agents without direct filesystem access use upload/download endpoints:
 5. **Agent sync from gateway config**: Agents defined in OpenClaw config files, auto-synced on startup. Prompts stored in files (not DB). Synced agents appear in all workspaces.
 6. **Migrations auto-run on DB connection**: Schema creation only for fresh databases. `legacy_alter_table = ON` during migrations to prevent FK rewriting bug.
 7. **Component traceability**: Every React component's root DOM element has `data-component="src/path/to/File"` (relative path, no extension). Paste rendered HTML and immediately identify which source file to edit.
+8. **LiveFeed is workspace-scoped**: Events API filters by `workspace_id` via task or agent ownership. System events (no task/agent) appear in all workspaces. AgentActivityDashboard is the global cross-workspace activity view.
 
 ---
 
