@@ -177,18 +177,16 @@ function WorkspaceCard({ workspace, onDelete, onEdit }: { workspace: WorkspaceSt
     <Link href={`/workspace/${workspace.slug}`}>
       <div className="bg-mc-bg-secondary border border-mc-border rounded-xl p-4 sm:p-6 hover:border-mc-accent/50 transition-all hover:shadow-lg cursor-pointer group relative h-[240px]">
         <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             {workspace.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={workspace.logo_url} alt={workspace.name} className="w-7 h-7 rounded object-contain" />
+              <img src={workspace.logo_url} alt={workspace.name} className="w-7 h-7 rounded object-contain flex-shrink-0" />
             ) : (
-              <Folder className="w-7 h-7 text-mc-accent" />
+              <Folder className="w-7 h-7 text-mc-accent flex-shrink-0" />
             )}
-            <div>
-              <h3 className="font-semibold text-lg group-hover:text-mc-accent transition-colors">
-                {workspace.name}
-              </h3>
-            </div>
+            <h3 className="font-semibold text-lg group-hover:text-mc-accent transition-colors truncate">
+              {workspace.name}
+            </h3>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -220,7 +218,7 @@ function WorkspaceCard({ workspace, onDelete, onEdit }: { workspace: WorkspaceSt
         </div>
 
         {workspace.description && (
-          <p className="text-sm text-mc-text-secondary line-clamp-2 mt-1">{workspace.description}</p>
+          <p className="text-xs text-mc-text-secondary line-clamp-2 mt-1">{workspace.description}</p>
         )}
 
         <div className="flex items-center gap-4 text-sm text-mc-text-secondary mt-4">
