@@ -348,14 +348,7 @@ export function ActiveSprint({ workspaceId, mobileMode = false, isPortrait = tru
                 <Flag className="w-6 h-6 text-mc-text-secondary" />
               </div>
               <h3 className="text-base font-medium mb-1">No Tasks in This Sprint</h3>
-              <p className="text-sm text-mc-text-secondary mb-4">Add tasks to this sprint to see them here.</p>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center gap-2 px-4 min-h-11 bg-mc-accent text-white rounded text-sm font-medium hover:bg-mc-accent/90"
-              >
-                <Plus className="w-4 h-4" />
-                Add Task
-              </button>
+              <p className="text-sm text-mc-text-secondary">Use the New Task button above to add tasks.</p>
             </div>
           ) : (
             <div className={`space-y-6 ${isPortrait ? '' : 'space-y-4'}`}>
@@ -405,6 +398,7 @@ export function ActiveSprint({ workspaceId, mobileMode = false, isPortrait = tru
           <TaskModal
             onClose={() => setShowCreateModal(false)}
             workspaceId={workspaceId}
+            defaultSprintId={selectedSprintId || undefined}
           />
         )}
         {editingTask && (

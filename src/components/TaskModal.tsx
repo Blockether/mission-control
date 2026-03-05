@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { X, Save, Trash2, Activity, Package, Bot, ClipboardList, Plus, Users } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import { triggerAutoDispatch, shouldTriggerAutoDispatch } from '@/lib/auto-dispatch';
@@ -10,7 +10,7 @@ import { SessionsList } from './SessionsList';
 import { PlanningTab } from './PlanningTab';
 import { TeamTab } from './TeamTab';
 import { AgentModal } from './AgentModal';
-import type { Task, TaskPriority, TaskStatus } from '@/lib/types';
+import type { Task, TaskPriority, TaskStatus, TaskType } from '@/lib/types';
 
 type TabType = 'overview' | 'planning' | 'team' | 'activity' | 'deliverables' | 'sessions';
 
@@ -18,9 +18,10 @@ interface TaskModalProps {
   task?: Task;
   onClose: () => void;
   workspaceId?: string;
+  defaultSprintId?: string;
 }
 
-export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
+export function TaskModal({ task, onClose, workspaceId, defaultSprintId }: TaskModalProps) {
   const { agents, addTask, updateTask, addEvent } = useMissionControl();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAgentModal, setShowAgentModal] = useState(false);
@@ -39,8 +40,21 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
     priority: task?.priority || 'normal' as TaskPriority,
     status: task?.status || 'inbox' as TaskStatus,
     assigned_agent_id: task?.assigned_agent_id || '',
-    due_date: task?.due_date || '',
+    task_type: task?.task_type || 'feature' as TaskType,
+    effort: task?.effort || null as number | null,
+    impact: task?.impact || null as number | null,
+    milestone_id: task?.milestone_id || '',
   });
+
+  const [milestones, setMilestones] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    const wsId = workspaceId || task?.workspace_id || 'default';
+    fetch(`/api/milestones?workspace_id=${wsId}`)
+      .then(res => res.json())
+      .then(data => setMilestones(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, [workspaceId, task?.workspace_id]);
 
   const resolveStatus = (): TaskStatus => {
     // Planning mode overrides everything
@@ -68,13 +82,17 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
       const method = task ? 'PATCH' : 'POST';
       const resolvedStatus = resolveStatus();
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         ...form,
         status: resolvedStatus,
         assigned_agent_id: form.assigned_agent_id || null,
-        due_date: form.due_date || null,
+        milestone_id: form.milestone_id || null,
         workspace_id: workspaceId || task?.workspace_id || 'default',
       };
+
+      if (!task && defaultSprintId) {
+        payload.sprint_id = defaultSprintId;
+      }
 
       const res = await fetch(url, {
         method,
@@ -141,14 +159,16 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
       }
 
       if (keepOpen) {
-        // "Save & New": clear form, stay open
         setForm({
           title: '',
           description: '',
           priority: 'normal' as TaskPriority,
           status: 'inbox' as TaskStatus,
           assigned_agent_id: '',
-          due_date: '',
+          task_type: 'feature' as TaskType,
+          effort: null,
+          impact: null,
+          milestone_id: '',
         });
         setUsePlanningMode(false);
       } else {
@@ -280,34 +300,22 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
             </div>
           )}
 
-          {/* Assigned Agent */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Assign to</label>
-            <select
-              value={form.assigned_agent_id}
-              onChange={(e) => {
-                if (e.target.value === '__add_new__') {
-                  setShowAgentModal(true);
-                } else {
-                  setForm({ ...form, assigned_agent_id: e.target.value });
-                }
-              }}
-              className="w-full min-h-11 bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
-            >
-              <option value="">Unassigned</option>
-              {agents.map((agent) => (
-                <option key={agent.id} value={agent.id}>
-                  {agent.name} - {agent.role}
-                </option>
-              ))}
-              <option value="__add_new__" className="text-mc-accent">
-                + Add new agent...
-              </option>
-            </select>
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
-            {/* Priority */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Task Type</label>
+              <select
+                value={form.task_type}
+                onChange={(e) => setForm({ ...form, task_type: e.target.value as TaskType })}
+                className="w-full min-h-11 bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
+              >
+                <option value="bug">Bug</option>
+                <option value="feature">Feature</option>
+                <option value="chore">Chore</option>
+                <option value="documentation">Documentation</option>
+                <option value="research">Research</option>
+              </select>
+            </div>
+
             <div>
               <label className="block text-sm font-medium mb-1">Priority</label>
               <select
@@ -317,21 +325,87 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
               >
                 {priorities.map((p) => (
                   <option key={p} value={p}>
-                    {p.toUpperCase()}
+                    {p.charAt(0).toUpperCase() + p.slice(1)}
                   </option>
                 ))}
               </select>
             </div>
+          </div>
 
-            {/* Due Date */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Due Date</label>
-              <input
-                type="datetime-local"
-                value={form.due_date}
-                onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+              <label className="block text-sm font-medium mb-1">Effort</label>
+              <select
+                value={form.effort ?? ''}
+                onChange={(e) => setForm({ ...form, effort: e.target.value ? Number(e.target.value) : null })}
                 className="w-full min-h-11 bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
-              />
+              >
+                <option value="">Not set</option>
+                <option value="1">1 - Trivial</option>
+                <option value="2">2 - Small</option>
+                <option value="3">3 - Medium</option>
+                <option value="4">4 - Large</option>
+                <option value="5">5 - Huge</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Impact</label>
+              <select
+                value={form.impact ?? ''}
+                onChange={(e) => setForm({ ...form, impact: e.target.value ? Number(e.target.value) : null })}
+                className="w-full min-h-11 bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
+              >
+                <option value="">Not set</option>
+                <option value="1">1 - Minimal</option>
+                <option value="2">2 - Low</option>
+                <option value="3">3 - Medium</option>
+                <option value="4">4 - High</option>
+                <option value="5">5 - Critical</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Assign to</label>
+              <select
+                value={form.assigned_agent_id}
+                onChange={(e) => {
+                  if (e.target.value === '__add_new__') {
+                    setShowAgentModal(true);
+                  } else {
+                    setForm({ ...form, assigned_agent_id: e.target.value });
+                  }
+                }}
+                className="w-full min-h-11 bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
+              >
+                <option value="">Unassigned</option>
+                {agents.map((agent) => (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.name} - {agent.role}
+                  </option>
+                ))}
+                <option value="__add_new__" className="text-mc-accent">
+                  + Add new agent...
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Milestone</label>
+              <select
+                value={form.milestone_id}
+                onChange={(e) => setForm({ ...form, milestone_id: e.target.value })}
+                className="w-full min-h-11 bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
+              >
+                <option value="">No milestone</option>
+                {milestones.map((milestone) => (
+                  <option key={milestone.id} value={milestone.id}>
+                    {milestone.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
