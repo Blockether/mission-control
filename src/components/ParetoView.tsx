@@ -8,6 +8,7 @@ import {
   XCircle,
   AlertCircle,
   Target,
+  ChevronRight,
 } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import { TaskModal } from '@/components/TaskModal';
@@ -81,9 +82,24 @@ export function ParetoView({ workspaceId }: ParetoViewProps) {
   }, [tasksWithPosition]);
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="p-4 space-y-4">
-        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="p-3 border-b border-mc-border flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <ChevronRight className="w-4 h-4 text-mc-text-secondary" />
+          <span className="font-medium">Pareto</span>
+          <span className="text-sm text-mc-text-secondary">{scoredTasks.length} scored, {tasks.length} total</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="px-3 py-1.5 rounded-lg border border-mc-accent-green/40 bg-mc-accent-green/10 text-sm font-medium text-mc-accent-green flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5" />
+            {quickWinsCount} Quick Wins
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 space-y-4">
+          <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-mc-bg-secondary border border-mc-border rounded-xl p-4">
             <div className="text-xs uppercase text-mc-text-secondary">Total Tasks</div>
             <div className="text-2xl font-semibold mt-1">{tasks.length}</div>
@@ -275,6 +291,7 @@ export function ParetoView({ workspaceId }: ParetoViewProps) {
             </div>
           </section>
         )}
+      </div>
       </div>
 
       {editingTask && (

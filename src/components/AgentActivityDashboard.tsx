@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, AlertTriangle, Activity, Clock, Filter, RefreshCw, Loader2 } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Activity, Clock, Filter, RefreshCw, Loader2, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Agent, Event, Task, Workspace } from '@/lib/types';
 
@@ -209,17 +209,32 @@ export function AgentActivityDashboard({ workspace, embedded = false }: AgentAct
 
   if (embedded) {
     return (
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Agent Activity</h2>
-            <div className={`px-2.5 py-1.5 rounded-lg border text-xs flex items-center gap-2 ${sseConnected ? 'text-mc-accent-green border-mc-accent-green/40 bg-mc-accent-green/10' : 'text-mc-accent-yellow border-mc-accent-yellow/40 bg-mc-accent-yellow/10'}`}>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="p-3 border-b border-mc-border flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <ChevronRight className="w-4 h-4 text-mc-text-secondary" />
+            <span className="font-medium">Activity</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {(['all', 'working', 'blocked', 'idle'] as ActivityFilter[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setFilter(tab)}
+                className={`px-3 py-1.5 rounded-full border text-xs capitalize ${filter === tab ? 'bg-mc-accent text-white border-mc-accent' : 'bg-mc-bg-secondary text-mc-text-secondary border-mc-border'}`}
+              >
+                {tab}
+              </button>
+            ))}
+            <div className={`px-2.5 py-1.5 rounded-lg border text-xs flex items-center gap-1.5 ${sseConnected ? 'text-mc-accent-green border-mc-accent-green/40 bg-mc-accent-green/10' : 'text-mc-accent-yellow border-mc-accent-yellow/40 bg-mc-accent-yellow/10'}`}>
               <RefreshCw className="w-3.5 h-3.5" />
               {sseConnected ? 'LIVE' : 'FALLBACK'}
             </div>
           </div>
+        </div>
 
-          <section className={`grid ${isPortrait ? 'grid-cols-2' : 'grid-cols-4'} gap-3`}>
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4 space-y-4">
+            <section className={`grid ${isPortrait ? 'grid-cols-2' : 'grid-cols-4'} gap-3`}>
             <MetricCard label="Agents" value={String(agents.length)} />
             <MetricCard label="Working" value={String(agents.filter((a) => a.status === 'working').length)} />
             <MetricCard label="Blocked" value={String(blockedAgentIds.size)} />
@@ -254,19 +269,6 @@ export function AgentActivityDashboard({ workspace, embedded = false }: AgentAct
           </section>
 
           <section>
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <Filter className="w-4 h-4 text-mc-text-secondary" />
-              {(['all', 'working', 'blocked', 'idle'] as ActivityFilter[]).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setFilter(tab)}
-                  className={`min-h-11 px-4 rounded-full border text-sm capitalize ${filter === tab ? 'bg-mc-accent text-white border-mc-accent' : 'bg-mc-bg-secondary text-mc-text-secondary border-mc-border'}`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
             <div className="grid grid-cols-1 gap-3">
               {filteredAgents.map((agent) => {
                 const agentTimeline = (eventsByAgent.get(agent.id) || []).slice(0, 5);
@@ -313,6 +315,7 @@ export function AgentActivityDashboard({ workspace, embedded = false }: AgentAct
             </div>
           </section>
         </div>
+      </div>
       </div>
     );
   }

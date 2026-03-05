@@ -13,6 +13,7 @@ import {
   Flag,
   ArrowUpDown,
   Loader2,
+  ChevronRight,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useMissionControl } from '@/lib/store';
@@ -141,72 +142,67 @@ export function BacklogView({ workspaceId }: BacklogViewProps) {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="p-4 border-b border-mc-border flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold">Backlog</h2>
+      <div className="p-3 border-b border-mc-border flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <ChevronRight className="w-4 h-4 text-mc-text-secondary" />
+          <span className="font-medium">Backlog</span>
           <span className="text-sm text-mc-text-secondary">{filteredTasks.length} tasks</span>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 min-h-11 bg-mc-accent text-white rounded text-sm font-medium hover:bg-mc-accent/90"
-        >
-          <CircleDot className="w-4 h-4" />
-          New Task
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-3 min-h-11 rounded-lg border text-sm font-medium transition-colors ${
+              showFilters ? 'bg-mc-accent text-white border-mc-accent' : 'border-mc-border text-mc-text-secondary hover:bg-mc-bg-tertiary'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            Filters
+            {(filterSprint !== 'all' || filterType !== 'all' || filterPriority !== 'all' || filterMilestone !== 'all') && (
+              <span className="w-2 h-2 rounded-full bg-mc-accent-green" />
+            )}
+          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => toggleSort('created')}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded text-xs ${
+                sortBy === 'created' ? 'bg-mc-accent text-white' : 'bg-mc-bg-tertiary text-mc-text-secondary hover:text-mc-text'
+              }`}
+            >
+              <ArrowUpDown className="w-3 h-3" />
+              Created
+            </button>
+            <button
+              onClick={() => toggleSort('priority')}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded text-xs ${
+                sortBy === 'priority' ? 'bg-mc-accent text-white' : 'bg-mc-bg-tertiary text-mc-text-secondary hover:text-mc-text'
+              }`}
+            >
+              <ArrowUpDown className="w-3 h-3" />
+              Priority
+            </button>
+            <button
+              onClick={() => toggleSort('title')}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded text-xs ${
+                sortBy === 'title' ? 'bg-mc-accent text-white' : 'bg-mc-bg-tertiary text-mc-text-secondary hover:text-mc-text'
+              }`}
+            >
+              <ArrowUpDown className="w-3 h-3" />
+              Title
+            </button>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 min-h-11 bg-mc-accent text-white rounded text-sm font-medium hover:bg-mc-accent/90"
+          >
+            <CircleDot className="w-4 h-4" />
+            New Task
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="bg-mc-bg-secondary border-b border-mc-border">
-          <div className="p-4 flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-3 min-h-11 rounded-lg border text-sm font-medium transition-colors ${
-                showFilters ? 'bg-mc-accent text-white border-mc-accent' : 'border-mc-border text-mc-text-secondary hover:bg-mc-bg-tertiary'
-              }`}
-            >
-              <Filter className="w-4 h-4" />
-              Filters
-              {(filterSprint !== 'all' || filterType !== 'all' || filterPriority !== 'all' || filterMilestone !== 'all') && (
-                <span className="w-2 h-2 rounded-full bg-mc-accent-green" />
-              )}
-            </button>
-
-            <div className="flex-1" />
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-mc-text-secondary">Sort:</span>
-              <button
-                onClick={() => toggleSort('created')}
-                className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
-                  sortBy === 'created' ? 'bg-mc-accent text-white' : 'bg-mc-bg-tertiary text-mc-text-secondary hover:text-mc-text'
-                }`}
-              >
-                <ArrowUpDown className="w-3 h-3" />
-                Created
-              </button>
-              <button
-                onClick={() => toggleSort('priority')}
-                className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
-                  sortBy === 'priority' ? 'bg-mc-accent text-white' : 'bg-mc-bg-tertiary text-mc-text-secondary hover:text-mc-text'
-                }`}
-              >
-                <ArrowUpDown className="w-3 h-3" />
-                Priority
-              </button>
-              <button
-                onClick={() => toggleSort('title')}
-                className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
-                  sortBy === 'title' ? 'bg-mc-accent text-white' : 'bg-mc-bg-tertiary text-mc-text-secondary hover:text-mc-text'
-                }`}
-              >
-                <ArrowUpDown className="w-3 h-3" />
-                Title
-              </button>
-            </div>
-          </div>
-
-          {showFilters && (
-            <div className="p-4 border-t border-mc-border bg-mc-bg-tertiary/50 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {showFilters && (
+          <div className="p-3 border-b border-mc-border bg-mc-bg-secondary grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
                 <label className="block text-xs text-mc-text-secondary mb-1.5">Sprint</label>
                 <select
@@ -273,7 +269,6 @@ export function BacklogView({ workspaceId }: BacklogViewProps) {
               </div>
             </div>
           )}
-        </div>
 
         {loading ? (
           <div className="p-12 flex items-center justify-center">
