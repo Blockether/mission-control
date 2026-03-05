@@ -27,15 +27,16 @@ Single-page dashboard per workspace. No route navigations between views.
 
 ```
 /workspace/[slug]/page.tsx
-  Header (nav buttons, view switching via URL ?view= param)
-  Desktop: AgentsSidebar(collapsed) | {view content} | LiveFeed
+  Header (logo, workspace, stats, online status, clock, settings — NO view nav)
+  Desktop: AgentsSidebar(views + agents, collapsed by default) | {view content} | LiveFeed(collapsed by default)
     view='sprint'   -> ActiveSprint (List/Board toggle)
     view='backlog'  -> BacklogView (tasks with no sprint_id)
     view='pareto'   -> ParetoView (effort/impact matrix)
     view='activity' -> AgentActivityDashboard (embedded)
-  Mobile portrait: tab bar (Content/Agents/Feed)
-  Mobile landscape: 60/40 grid (content | agents or feed)
+  Mobile: hamburger in Header opens AgentsSidebar as slide-over overlay. Single content panel, no duplicate tabs.
 ```
+
+**Navigation lives in AgentsSidebar only** — not in the Header. The sidebar has two sections: Views (Sprint/Backlog/Pareto/Activity) at top, Agents list below. On desktop it collapses to icons. On mobile it's a slide-over overlay triggered by hamburger menu.
 
 View state is React state + URL query param (`?view=backlog`). Default is `sprint`. Switching calls `window.history.replaceState()` -- no page reload.
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, ListTodo, Users, Activity, Inbox, BarChart3 } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { Header, type DashboardView } from '@/components/Header';
 import { AgentsSidebar } from '@/components/AgentsSidebar';
 import { ActiveSprint } from '@/components/ActiveSprint';
@@ -17,22 +17,6 @@ import { useMissionControl } from '@/lib/store';
 import { useSSE } from '@/hooks/useSSE';
 import { debug } from '@/lib/debug';
 import type { Task, Workspace } from '@/lib/types';
-
-type MobileTab = 'content' | 'agents' | 'feed';
-
-const VIEW_LABELS: Record<DashboardView, string> = {
-  sprint: 'Sprint',
-  backlog: 'Backlog',
-  pareto: 'Pareto',
-  activity: 'Activity',
-};
-
-const VIEW_ICONS: Record<DashboardView, React.ReactNode> = {
-  sprint: <ListTodo className="w-4 h-4" />,
-  backlog: <Inbox className="w-4 h-4" />,
-  pareto: <BarChart3 className="w-4 h-4" />,
-  activity: <Activity className="w-4 h-4" />,
-};
 
 function getInitialView(): DashboardView {
   if (typeof window === 'undefined') return 'sprint';
@@ -53,7 +37,7 @@ export default function WorkspacePage() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [view, setView] = useState<DashboardView>(getInitialView);
-  const [mobileTab, setMobileTab] = useState<MobileTab>('content');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isPortrait, setIsPortrait] = useState(true);
 
   useSSE();
@@ -234,22 +218,6 @@ export default function WorkspacePage() {
     }
   };
 
-  const renderMobileView = (mobileMode: boolean, portrait: boolean) => {
-    if (!workspace) return null;
-    switch (view) {
-      case 'sprint':
-        return <ActiveSprint workspaceId={workspace.id} mobileMode={mobileMode} isPortrait={portrait} />;
-      case 'backlog':
-        return <BacklogView workspaceId={workspace.id} />;
-      case 'pareto':
-        return <ParetoView workspaceId={workspace.id} />;
-      case 'activity':
-        return <AgentActivityDashboard workspace={workspace} embedded />;
-      default:
-        return <ActiveSprint workspaceId={workspace.id} mobileMode={mobileMode} isPortrait={portrait} />;
-    }
-  };
-
   if (notFound) {
     return (
       <div className="min-h-screen bg-mc-bg flex items-center justify-center">
@@ -279,89 +247,32 @@ export default function WorkspacePage() {
 
   return (
     <div data-component="src/app/workspace/[slug]/page" className="h-screen flex flex-col bg-mc-bg overflow-hidden">
-      <Header workspace={workspace} isPortrait={isPortrait} activeView={view} onViewChange={handleViewChange} />
+      <Header 
+        workspace={workspace} 
+        isPortrait={isPortrait} 
+        onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+        sidebarOpen={sidebarOpen}
+      />
 
       <div className="hidden lg:flex flex-1 overflow-hidden">
-        <AgentsSidebar workspaceId={workspace.id} />
-        {renderView()}
+        <AgentsSidebar 
+          workspaceId={workspace.id} 
+          activeView={view} 
+          onViewChange={handleViewChange} 
+        />
+        <div className="flex-1 min-w-0 overflow-hidden">{renderView()}</div>
         <LiveFeed />
       </div>
 
       <div className="lg:hidden flex-1 overflow-hidden pb-[env(safe-area-inset-bottom)]">
-        {isPortrait ? (
-          <div className="h-full flex flex-col">
-            <div className="flex items-center gap-1 px-3 py-2 border-b border-mc-border bg-mc-bg-secondary shrink-0">
-              <button
-                onClick={() => setMobileTab('content')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  mobileTab === 'content' ? 'bg-mc-accent text-white' : 'text-mc-text-secondary hover:text-mc-text'
-                }`}
-              >
-                {VIEW_ICONS[view]}
-                {VIEW_LABELS[view]}
-              </button>
-              <button
-                onClick={() => setMobileTab('agents')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  mobileTab === 'agents' ? 'bg-mc-accent text-white' : 'text-mc-text-secondary hover:text-mc-text'
-                }`}
-              >
-                <Users className="w-4 h-4" />
-                Agents
-              </button>
-              <button
-                onClick={() => setMobileTab('feed')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  mobileTab === 'feed' ? 'bg-mc-accent text-white' : 'text-mc-text-secondary hover:text-mc-text'
-                }`}
-              >
-                <Activity className="w-4 h-4" />
-                Feed
-              </button>
-            </div>
-            <div className="flex-1 min-h-0 overflow-hidden">
-              {mobileTab === 'content' && renderMobileView(true, true)}
-              {mobileTab === 'agents' && (
-                <div className="h-full p-3 overflow-y-auto">
-                  <AgentsSidebar workspaceId={workspace.id} mobileMode isPortrait />
-                </div>
-              )}
-              {mobileTab === 'feed' && (
-                <div className="h-full p-3 overflow-y-auto">
-                  <LiveFeed mobileMode isPortrait />
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="h-full p-3 grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-3">
-            {renderMobileView(true, false)}
-            <div className="min-w-0 h-full flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setMobileTab('agents')}
-                  className={`min-h-11 rounded-lg text-xs ${mobileTab === 'agents' ? 'bg-mc-accent text-white font-medium' : 'bg-mc-bg-secondary border border-mc-border text-mc-text-secondary'}`}
-                >
-                  Agents
-                </button>
-                <button
-                  onClick={() => setMobileTab('feed')}
-                  className={`min-h-11 rounded-lg text-xs ${mobileTab === 'feed' ? 'bg-mc-accent text-white font-medium' : 'bg-mc-bg-secondary border border-mc-border text-mc-text-secondary'}`}
-                >
-                  Feed
-                </button>
-              </div>
-
-              <div className="min-h-0 flex-1">
-                {mobileTab === 'agents' ? (
-                  <AgentsSidebar workspaceId={workspace.id} mobileMode isPortrait={false} />
-                ) : (
-                  <LiveFeed mobileMode isPortrait={false} />
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        <AgentsSidebar
+          workspaceId={workspace.id}
+          activeView={view}
+          onViewChange={handleViewChange}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+        <div className="h-full overflow-hidden">{renderView()}</div>
       </div>
 
       <SSEDebugPanel />

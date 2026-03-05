@@ -9,10 +9,8 @@ import {
   ChevronLeft,
   LayoutGrid,
   Folder,
-  ListTodo,
-  Inbox,
-  BarChart3,
-  Activity,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import { format } from 'date-fns';
@@ -23,24 +21,11 @@ export type DashboardView = 'sprint' | 'backlog' | 'pareto' | 'activity';
 interface HeaderProps {
   workspace?: Workspace;
   isPortrait?: boolean;
-  activeView?: DashboardView;
-  onViewChange?: (view: DashboardView) => void;
+  onMenuToggle?: () => void;
+  sidebarOpen?: boolean;
 }
 
-interface NavItem {
-  label: string;
-  view: DashboardView;
-  icon: React.ReactNode;
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Active Sprint', view: 'sprint', icon: <ListTodo className="w-4 h-4" /> },
-  { label: 'Backlog', view: 'backlog', icon: <Inbox className="w-4 h-4" /> },
-  { label: 'Pareto', view: 'pareto', icon: <BarChart3 className="w-4 h-4" /> },
-  { label: 'Activity', view: 'activity', icon: <Activity className="w-4 h-4" /> },
-];
-
-export function Header({ workspace, isPortrait = true, activeView = 'sprint', onViewChange }: HeaderProps) {
+export function Header({ workspace, isPortrait = true, onMenuToggle, sidebarOpen }: HeaderProps) {
   const router = useRouter();
   const { agents, tasks, isOnline } = useMissionControl();
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -75,12 +60,6 @@ export function Header({ workspace, isPortrait = true, activeView = 'sprint', on
 
   const portraitWorkspaceHeader = !!workspace && isPortrait;
 
-  const handleNavClick = (view: DashboardView) => {
-    if (onViewChange) {
-      onViewChange(view);
-    }
-  };
-
   return (
     <header
       data-component="src/components/Header"
@@ -92,10 +71,13 @@ export function Header({ workspace, isPortrait = true, activeView = 'sprint', on
         <>
           <div className="flex items-center justify-between gap-2 min-w-0">
             <div className="flex items-center gap-2 min-w-0">
-              <Link href="/" className="flex items-center gap-1 text-mc-text-secondary hover:text-mc-accent transition-colors shrink-0">
-                <ChevronLeft className="w-4 h-4" />
-                <LayoutGrid className="w-4 h-4" />
-              </Link>
+              <button
+                onClick={onMenuToggle}
+                className="lg:hidden min-h-11 min-w-11 p-2 hover:bg-mc-bg-tertiary rounded text-mc-text-secondary shrink-0"
+                title="Menu"
+              >
+                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
               <div className="flex items-center gap-2 px-2.5 py-1.5 bg-mc-bg-tertiary rounded min-w-0">
                 {workspace.logo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -107,23 +89,25 @@ export function Header({ workspace, isPortrait = true, activeView = 'sprint', on
               </div>
             </div>
 
-            <button onClick={() => router.push('/settings')} className="min-h-11 min-w-11 p-2 hover:bg-mc-bg-tertiary rounded text-mc-text-secondary shrink-0" title="Settings">
-              <Settings className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <div
+                className={`flex items-center gap-2 px-3 min-h-11 rounded border text-xs font-medium ${
+                  isOnline
+                    ? 'bg-mc-accent-green/20 border-mc-accent-green text-mc-accent-green'
+                    : 'bg-mc-accent-red/20 border-mc-accent-red text-mc-accent-red'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-mc-accent-green animate-pulse' : 'bg-mc-accent-red'}`} />
+                {isOnline ? 'ONLINE' : 'OFFLINE'}
+              </div>
+
+              <button onClick={() => router.push('/settings')} className="min-h-11 min-w-11 p-2 hover:bg-mc-bg-tertiary rounded text-mc-text-secondary shrink-0" title="Settings">
+                <Settings className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 min-w-0">
-            <div
-              className={`flex items-center gap-2 px-3 min-h-11 rounded border text-xs font-medium ${
-                isOnline
-                  ? 'bg-mc-accent-green/20 border-mc-accent-green text-mc-accent-green'
-                  : 'bg-mc-accent-red/20 border-mc-accent-red text-mc-accent-red'
-              }`}
-            >
-              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-mc-accent-green animate-pulse' : 'bg-mc-accent-red'}`} />
-              {isOnline ? 'ONLINE' : 'OFFLINE'}
-            </div>
-
             <div className="flex-1 grid grid-cols-2 gap-2">
               <div className="min-h-11 rounded border border-mc-border bg-mc-bg-tertiary px-2 flex items-center justify-center gap-1.5 text-xs">
                 <span className="text-mc-accent-cyan font-semibold">{activeAgents}</span>
@@ -135,30 +119,18 @@ export function Header({ workspace, isPortrait = true, activeView = 'sprint', on
               </div>
             </div>
           </div>
-
-          <nav className="flex items-center gap-1 overflow-x-auto -mx-3 px-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {NAV_ITEMS.map((item) => {
-              const isActive = activeView === item.view;
-              return (
-                <button
-                  key={item.view}
-                  onClick={() => handleNavClick(item.view)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors shrink-0 ${
-                    isActive
-                      ? 'bg-mc-accent text-white font-medium'
-                      : 'text-mc-text-secondary hover:text-mc-text hover:bg-mc-bg-tertiary'
-                  }`}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
         </>
       ) : (
         <>
           <div className="flex items-center gap-2 md:gap-4 min-w-0">
+            <button
+              onClick={onMenuToggle}
+              className="lg:hidden min-h-11 min-w-11 p-2 hover:bg-mc-bg-tertiary rounded text-mc-text-secondary shrink-0"
+              title="Menu"
+            >
+              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+
             <div className="hidden sm:flex items-center gap-2">
               <Image src="/logo.png" alt="Blockether" width={24} height={24} className="rounded" />
               <span className="font-semibold text-mc-text uppercase tracking-wider text-sm">Blockether</span>
@@ -188,28 +160,6 @@ export function Header({ workspace, isPortrait = true, activeView = 'sprint', on
               </Link>
             )}
           </div>
-
-          {workspace && (
-            <nav className="hidden md:flex items-center gap-1">
-              {NAV_ITEMS.map((item) => {
-                const isActive = activeView === item.view;
-                return (
-                  <button
-                    key={item.view}
-                    onClick={() => handleNavClick(item.view)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                      isActive
-                        ? 'bg-mc-accent text-white font-medium'
-                        : 'text-mc-text-secondary hover:text-mc-text hover:bg-mc-bg-tertiary'
-                    }`}
-                  >
-                    {item.icon}
-                    <span className="hidden lg:inline">{item.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          )}
 
           {workspace && (
             <div className="hidden lg:flex items-center gap-8">
