@@ -16,7 +16,7 @@ interface LiveFeedProps {
 export function LiveFeed({ mobileMode = false, isPortrait = true }: LiveFeedProps) {
   const { events } = useMissionControl();
   const [filter, setFilter] = useState<FeedFilter>('all');
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true);
 
   const effectiveMinimized = mobileMode ? false : isMinimized;
   const toggleMinimize = () => setIsMinimized(!isMinimized);
