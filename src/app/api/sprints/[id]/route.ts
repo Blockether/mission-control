@@ -5,8 +5,6 @@ import type { Sprint } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-type SprintRow = Sprint & { milestone_name: string | null };
-
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -15,14 +13,7 @@ export async function GET(
 
   try {
     const db = getDb();
-    const sprint = db.prepare(`
-      SELECT
-        s.*,
-        m.name AS milestone_name
-      FROM sprints s
-      LEFT JOIN milestones m ON s.milestone_id = m.id
-      WHERE s.id = ?
-    `).get(id) as SprintRow | undefined;
+    const sprint = db.prepare('SELECT * FROM sprints WHERE id = ?').get(id) as Sprint | undefined;
 
     if (!sprint) {
       return NextResponse.json({ error: 'Sprint not found' }, { status: 404 });
@@ -55,25 +46,31 @@ export async function PATCH(
     const data = validation.data;
     const db = getDb();
 
-    const existing = db.prepare('SELECT id FROM sprints WHERE id = ?').get(id) as { id: string } | undefined;
+    const existing = db.prepare('SELECT id, workspace_id, status FROM sprints WHERE id = ?').get(id) as Pick<Sprint, 'id' | 'workspace_id' | 'status'> | undefined;
     if (!existing) {
       return NextResponse.json({ error: 'Sprint not found' }, { status: 404 });
     }
 
+    if (data.status === 'active') {
+      const activeSprint = db.prepare(
+        'SELECT id FROM sprints WHERE workspace_id = ? AND status = ? AND id != ?'
+      ).get(existing.workspace_id, 'active', id) as { id: string } | undefined;
+
+      if (activeSprint) {
+        return NextResponse.json(
+          { error: 'Another sprint is already active in this workspace. End it first.' },
+          { status: 400 }
+        );
+      }
+    }
+
     const updates: string[] = [];
     const values: unknown[] = [];
+    const now = new Date().toISOString();
 
-    if (data.name !== undefined) {
-      updates.push('name = ?');
-      values.push(data.name);
-    }
     if (data.goal !== undefined) {
       updates.push('goal = ?');
       values.push(data.goal);
-    }
-    if (data.milestone_id !== undefined) {
-      updates.push('milestone_id = ?');
-      values.push(data.milestone_id);
     }
     if (data.start_date !== undefined) {
       updates.push('start_date = ?');
@@ -93,20 +90,16 @@ export async function PATCH(
     }
 
     updates.push('updated_at = ?');
-    values.push(new Date().toISOString());
+    values.push(now);
     values.push(id);
 
     db.prepare(`UPDATE sprints SET ${updates.join(', ')} WHERE id = ?`).run(...values);
 
-    const sprint = db.prepare(`
-      SELECT
-        s.*,
-        m.name AS milestone_name
-      FROM sprints s
-      LEFT JOIN milestones m ON s.milestone_id = m.id
-      WHERE s.id = ?
-    `).get(id) as SprintRow | undefined;
+    if (data.status === 'completed') {
+      db.prepare('UPDATE tasks SET sprint_id = NULL, updated_at = ? WHERE sprint_id = ? AND status != ?').run(now, id, 'done');
+    }
 
+    const sprint = db.prepare('SELECT * FROM sprints WHERE id = ?').get(id) as Sprint | undefined;
     return NextResponse.json(sprint);
   } catch (error) {
     console.error('Failed to update sprint:', error);

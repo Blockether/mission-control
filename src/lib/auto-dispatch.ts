@@ -10,7 +10,7 @@ interface AutoDispatchOptions {
 
 /**
  * Shared utility function to trigger auto-dispatch for a task
- * Used in MissionQueue and TaskModal to eliminate duplication
+ * Used in ActiveSprint and TaskModal to eliminate duplication
  */
 export async function triggerAutoDispatch(options: AutoDispatchOptions): Promise<{ success: boolean; error?: string }> {
   const { taskId, taskTitle, agentId, agentName, workspaceId } = options;

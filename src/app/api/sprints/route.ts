@@ -5,11 +5,8 @@ import type { Sprint } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-type SprintRow = Sprint & { milestone_name: string | null };
-
 export async function GET(request: NextRequest) {
   const workspaceId = request.nextUrl.searchParams.get('workspace_id');
-  const milestoneId = request.nextUrl.searchParams.get('milestone_id');
   const status = request.nextUrl.searchParams.get('status');
 
   if (!workspaceId) {
@@ -19,29 +16,17 @@ export async function GET(request: NextRequest) {
   try {
     const db = getDb();
 
-    let sql = `
-      SELECT
-        s.*,
-        m.name AS milestone_name
-      FROM sprints s
-      LEFT JOIN milestones m ON s.milestone_id = m.id
-      WHERE s.workspace_id = ?
-    `;
+    let sql = 'SELECT * FROM sprints WHERE workspace_id = ?';
     const values: unknown[] = [workspaceId];
 
-    if (milestoneId) {
-      sql += ' AND s.milestone_id = ?';
-      values.push(milestoneId);
-    }
-
     if (status) {
-      sql += ' AND s.status = ?';
+      sql += ' AND status = ?';
       values.push(status);
     }
 
-    sql += ' ORDER BY s.created_at DESC';
+    sql += ' ORDER BY sprint_number DESC, created_at DESC';
 
-    const sprints = db.prepare(sql).all(...values) as SprintRow[];
+    const sprints = db.prepare(sql).all(...values) as Sprint[];
     return NextResponse.json(sprints);
   } catch (error) {
     console.error('Failed to fetch sprints:', error);
@@ -62,35 +47,23 @@ export async function POST(request: NextRequest) {
     }
 
     const data = validation.data;
+
     const db = getDb();
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
+    const maxRow = db.prepare(
+      'SELECT MAX(sprint_number) as max_num FROM sprints WHERE workspace_id = ?'
+    ).get(data.workspace_id) as { max_num: number | null };
+    const nextNumber = (maxRow?.max_num || 0) + 1;
+    const name = `SPRINT-${nextNumber}`;
+
     db.prepare(`
-      INSERT INTO sprints (id, workspace_id, name, goal, milestone_id, start_date, end_date, status, created_at, updated_at)
+      INSERT INTO sprints (id, workspace_id, name, goal, sprint_number, start_date, end_date, status, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      data.workspace_id,
-      data.name,
-      data.goal || null,
-      data.milestone_id || null,
-      data.start_date,
-      data.end_date,
-      'planning',
-      now,
-      now
-    );
+    `).run(id, data.workspace_id, name, data.goal || null, nextNumber, data.start_date, data.end_date, 'planning', now, now);
 
-    const sprint = db.prepare(`
-      SELECT
-        s.*,
-        m.name AS milestone_name
-      FROM sprints s
-      LEFT JOIN milestones m ON s.milestone_id = m.id
-      WHERE s.id = ?
-    `).get(id) as SprintRow | undefined;
-
+    const sprint = db.prepare('SELECT * FROM sprints WHERE id = ?').get(id) as Sprint;
     return NextResponse.json(sprint, { status: 201 });
   } catch (error) {
     console.error('Failed to create sprint:', error);

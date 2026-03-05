@@ -821,6 +821,25 @@ const migrations: Migration[] = [
 
       console.log('[Migration 018] Project management overhaul complete');
     }
+  },
+  {
+    id: '019',
+    name: 'milestone_coordinator_sprint_number',
+    up: (db) => {
+      console.log('[Migration 019] Adding milestone coordinator + sprint number...');
+
+      const milestoneCols = (db.prepare(`PRAGMA table_info(milestones)`).all() as { name: string }[]).map(c => c.name);
+      if (!milestoneCols.includes('coordinator_agent_id')) {
+        db.exec(`ALTER TABLE milestones ADD COLUMN coordinator_agent_id TEXT REFERENCES agents(id) ON DELETE SET NULL`);
+      }
+
+      const sprintCols = (db.prepare(`PRAGMA table_info(sprints)`).all() as { name: string }[]).map(c => c.name);
+      if (!sprintCols.includes('sprint_number')) {
+        db.exec(`ALTER TABLE sprints ADD COLUMN sprint_number INTEGER`);
+      }
+
+      console.log('[Migration 019] Done');
+    }
   }
 ];
 

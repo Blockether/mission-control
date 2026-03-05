@@ -3,6 +3,11 @@ import { getDb } from '@/lib/db';
 import { UpdateMilestoneSchema } from '@/lib/validation';
 import type { Milestone } from '@/lib/types';
 
+type MilestoneWithCoordinatorColumns = Milestone & {
+  coordinator_agent_name: string | null;
+  coordinator_agent_role: string | null;
+};
+
 export const dynamic = 'force-dynamic';
 
 export async function GET(
@@ -13,13 +18,30 @@ export async function GET(
 
   try {
     const db = getDb();
-    const milestone = db.prepare('SELECT * FROM milestones WHERE id = ?').get(id) as Milestone | undefined;
+    const milestone = db.prepare(
+      `SELECT m.*, a.name as coordinator_agent_name, a.role as coordinator_agent_role
+       FROM milestones m
+       LEFT JOIN agents a ON m.coordinator_agent_id = a.id
+       WHERE m.id = ?`
+    ).get(id) as MilestoneWithCoordinatorColumns | undefined;
 
     if (!milestone) {
       return NextResponse.json({ error: 'Milestone not found' }, { status: 404 });
     }
 
-    return NextResponse.json(milestone);
+    const { coordinator_agent_name, coordinator_agent_role, ...milestoneBase } = milestone;
+    const response = coordinator_agent_name
+      ? {
+          ...milestoneBase,
+          coordinator: {
+            id: milestoneBase.coordinator_agent_id ?? null,
+            name: coordinator_agent_name,
+            role: coordinator_agent_role,
+          },
+        }
+      : milestoneBase;
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Failed to fetch milestone:', error);
     return NextResponse.json({ error: 'Failed to fetch milestone' }, { status: 500 });
@@ -69,6 +91,10 @@ export async function PATCH(
     if (data.status !== undefined) {
       updates.push('status = ?');
       values.push(data.status);
+    }
+    if (data.coordinator_agent_id !== undefined) {
+      updates.push('coordinator_agent_id = ?');
+      values.push(data.coordinator_agent_id);
     }
 
     if (updates.length === 0) {

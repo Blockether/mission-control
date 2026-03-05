@@ -3,6 +3,11 @@ import { getDb } from '@/lib/db';
 import { CreateMilestoneSchema } from '@/lib/validation';
 import type { Milestone } from '@/lib/types';
 
+type MilestoneWithCoordinatorColumns = Milestone & {
+  coordinator_agent_name: string | null;
+  coordinator_agent_role: string | null;
+};
+
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
@@ -20,18 +25,37 @@ export async function GET(request: NextRequest) {
   try {
     const db = getDb();
 
-    let sql = 'SELECT * FROM milestones WHERE workspace_id = ?';
+    let sql = `SELECT m.*, a.name as coordinator_agent_name, a.role as coordinator_agent_role
+      FROM milestones m
+      LEFT JOIN agents a ON m.coordinator_agent_id = a.id
+      WHERE m.workspace_id = ?`;
     const values: unknown[] = [workspaceId];
 
     if (status) {
-      sql += ' AND status = ?';
+      sql += ' AND m.status = ?';
       values.push(status);
     }
 
-    sql += ' ORDER BY created_at DESC';
+    sql += ' ORDER BY m.created_at DESC';
 
-    const milestones = db.prepare(sql).all(...values) as Milestone[];
-    return NextResponse.json(milestones);
+    const milestones = db.prepare(sql).all(...values) as MilestoneWithCoordinatorColumns[];
+    const response = milestones.map((milestone) => {
+      const { coordinator_agent_name, coordinator_agent_role, ...milestoneBase } = milestone;
+      if (!coordinator_agent_name) {
+        return milestoneBase;
+      }
+
+      return {
+        ...milestoneBase,
+        coordinator: {
+          id: milestoneBase.coordinator_agent_id ?? null,
+          name: coordinator_agent_name,
+          role: coordinator_agent_role,
+        },
+      };
+    });
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Failed to fetch milestones:', error);
     return NextResponse.json({ error: 'Failed to fetch milestones' }, { status: 500 });
@@ -55,15 +79,20 @@ export async function POST(request: NextRequest) {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
+    const coordinatorAgentId = data.coordinator_agent_id ?? null;
+    const sprintId = data.sprint_id ?? null;
+
     db.prepare(`
-      INSERT INTO milestones (id, workspace_id, name, description, due_date, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO milestones (id, workspace_id, sprint_id, name, description, due_date, coordinator_agent_id, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       data.workspace_id,
+      sprintId,
       data.name,
       data.description || null,
       data.due_date || null,
+      coordinatorAgentId,
       'open',
       now,
       now

@@ -69,17 +69,13 @@ export const SprintStatus = z.enum(['planning', 'active', 'completed', 'cancelle
 
 export const CreateSprintSchema = z.object({
   workspace_id: z.string().min(1),
-  name: z.string().min(1).max(200),
   goal: z.string().max(2000).optional(),
-  milestone_id: z.string().optional().nullable(),
   start_date: z.string().min(1),
   end_date: z.string().min(1),
 });
 
 export const UpdateSprintSchema = z.object({
-  name: z.string().min(1).max(200).optional(),
   goal: z.string().max(2000).optional().nullable(),
-  milestone_id: z.string().optional().nullable(),
   start_date: z.string().optional(),
   end_date: z.string().optional(),
   status: SprintStatus.optional(),
@@ -87,15 +83,18 @@ export const UpdateSprintSchema = z.object({
 
 export const CreateMilestoneSchema = z.object({
   workspace_id: z.string().min(1),
+  sprint_id: z.string().optional().nullable(),
   name: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
   due_date: z.string().optional().nullable(),
+  coordinator_agent_id: z.string().uuid().optional().nullable(),
 });
 
 export const UpdateMilestoneSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).optional().nullable(),
   due_date: z.string().optional().nullable(),
+  coordinator_agent_id: z.string().uuid().optional().nullable(),
   status: z.enum(['open', 'closed']).optional(),
 });
 

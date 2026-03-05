@@ -11,28 +11,29 @@ import {
   Wrench,
   BookOpen,
   FlaskConical,
-  ChevronDown,
   Filter,
-  ArrowRight,
   Circle,
   CircleDot,
-  Calendar,
-  User,
   Flag,
   Target,
+  ArrowUpDown,
+  Loader2,
 } from 'lucide-react';
-import { format, differenceInDays, parseISO } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import type { Task, TaskType, TaskPriority, Workspace, Sprint, Milestone, Agent } from '@/lib/types';
-
-const TASK_TYPE_CONFIG: Record<TaskType, { icon: React.ReactNode; color: string; bgColor: string }> = {
-  bug: { icon: <Bug className="w-3.5 h-3.5" />, color: 'text-mc-accent-red', bgColor: 'bg-mc-accent-red/10' },
-  feature: { icon: <Lightbulb className="w-3.5 h-3.5" />, color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  chore: { icon: <Wrench className="w-3.5 h-3.5" />, color: 'text-mc-text-secondary', bgColor: 'bg-mc-bg-tertiary' },
-  documentation: { icon: <BookOpen className="w-3.5 h-3.5" />, color: 'text-mc-accent-purple', bgColor: 'bg-mc-accent-purple/10' },
-  research: { icon: <FlaskConical className="w-3.5 h-3.5" />, color: 'text-mc-accent-green', bgColor: 'bg-mc-accent-green/10' },
-};
+import { Header } from '@/components/Header';
+import { TaskModal } from '@/components/TaskModal';
+import { AgentInitials } from '@/components/AgentInitials';
 
 const PRIORITY_ORDER: TaskPriority[] = ['urgent', 'high', 'normal', 'low'];
+
+const TASK_TYPE_CONFIG: Record<TaskType, { icon: typeof Bug; color: string }> = {
+  bug: { icon: Bug, color: 'text-red-500' },
+  feature: { icon: Lightbulb, color: 'text-yellow-500' },
+  chore: { icon: Wrench, color: 'text-blue-500' },
+  documentation: { icon: BookOpen, color: 'text-green-500' },
+  research: { icon: FlaskConical, color: 'text-purple-500' },
+};
 
 export default function BacklogPage() {
   const params = useParams();
@@ -45,413 +46,429 @@ export default function BacklogPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [filterSprint, setFilterSprint] = useState<string>('all');
   const [filterType, setFilterType] = useState<TaskType | 'all'>('all');
   const [filterPriority, setFilterPriority] = useState<TaskPriority | 'all'>('all');
   const [filterMilestone, setFilterMilestone] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'priority' | 'impact' | 'effort' | 'pareto'>('pareto');
+  const [sortBy, setSortBy] = useState<'priority' | 'created' | 'title'>('created');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
-  const [showSprintDropdown, setShowSprintDropdown] = useState(false);
-  const [movingToSprint, setMovingToSprint] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   useEffect(() => {
-    let mounted = true;
+    async function loadWorkspace() {
+      try {
+        const res = await fetch(`/api/workspaces/${slug}`);
+        if (res.ok) {
+          const data = await res.json();
+          setWorkspace(data);
+        }
+      } catch (error) {
+        console.error('Failed to load workspace:', error);
+      }
+    }
+    loadWorkspace();
+  }, [slug]);
+
+  useEffect(() => {
+    if (!workspace) return;
+
+    const workspaceId = workspace.id;
 
     async function loadData() {
       try {
-        const wsRes = await fetch(`/api/workspaces/${slug}`);
-        if (!wsRes.ok) {
-          setLoading(false);
-          return;
-        }
-        const ws = await wsRes.json();
-        if (!mounted) return;
-        setWorkspace(ws);
-
+        setLoading(true);
         const [tasksRes, sprintsRes, milestonesRes, agentsRes] = await Promise.all([
-          fetch(`/api/tasks?workspace_id=${ws.id}&backlog=true`),
-          fetch(`/api/sprints?workspace_id=${ws.id}`),
-          fetch(`/api/milestones?workspace_id=${ws.id}`),
-          fetch(`/api/agents?workspace_id=${ws.id}`),
+          fetch(`/api/tasks?workspace_id=${workspaceId}`),
+          fetch(`/api/sprints?workspace_id=${workspaceId}`),
+          fetch(`/api/milestones?workspace_id=${workspaceId}`),
+          fetch(`/api/agents?workspace_id=${workspaceId}`),
         ]);
-
-        if (!mounted) return;
 
         if (tasksRes.ok) setTasks(await tasksRes.json());
         if (sprintsRes.ok) setSprints(await sprintsRes.json());
         if (milestonesRes.ok) setMilestones(await milestonesRes.json());
         if (agentsRes.ok) setAgents(await agentsRes.json());
       } catch (error) {
-        console.error('Failed to load backlog data:', error);
+        console.error('Failed to load data:', error);
       } finally {
-        if (mounted) setLoading(false);
+        setLoading(false);
       }
     }
 
     loadData();
-
-    return () => {
-      mounted = false;
-    };
-  }, [slug]);
-
-  const eligibleSprints = useMemo(() => {
-    return sprints.filter((s) => s.status === 'planning' || s.status === 'active');
-  }, [sprints]);
+  }, [workspace]);
 
   const filteredTasks = useMemo(() => {
     let result = [...tasks];
 
+    if (filterSprint === 'none') {
+      result = result.filter((t) => !t.sprint_id);
+    } else if (filterSprint !== 'all') {
+      result = result.filter((t) => t.sprint_id === filterSprint);
+    }
+
     if (filterType !== 'all') {
       result = result.filter((t) => t.task_type === filterType);
     }
+
     if (filterPriority !== 'all') {
       result = result.filter((t) => t.priority === filterPriority);
     }
-    if (filterMilestone !== 'all') {
+
+    if (filterMilestone === 'none') {
+      result = result.filter((t) => !t.milestone_id);
+    } else if (filterMilestone !== 'all') {
       result = result.filter((t) => t.milestone_id === filterMilestone);
     }
-
     result.sort((a, b) => {
-      let cmp = 0;
+      let comparison = 0;
       if (sortBy === 'priority') {
-        cmp = PRIORITY_ORDER.indexOf(a.priority) - PRIORITY_ORDER.indexOf(b.priority);
-      } else if (sortBy === 'impact') {
-        cmp = (a.impact || 0) - (b.impact || 0);
-      } else if (sortBy === 'effort') {
-        cmp = (a.effort || 0) - (b.effort || 0);
-      } else {
-        const scoreA = (a.impact || 0) / Math.max(a.effort || 1, 1);
-        const scoreB = (b.impact || 0) / Math.max(b.effort || 1, 1);
-        cmp = scoreA - scoreB;
+        comparison = PRIORITY_ORDER.indexOf(a.priority) - PRIORITY_ORDER.indexOf(b.priority);
+      } else if (sortBy === 'created') {
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      } else if (sortBy === 'title') {
+        comparison = a.title.localeCompare(b.title);
       }
-      return sortDir === 'desc' ? -cmp : cmp;
+      return sortDir === 'asc' ? comparison : -comparison;
     });
 
     return result;
-  }, [tasks, filterType, filterPriority, filterMilestone, sortBy, sortDir]);
+  }, [tasks, filterSprint, filterType, filterPriority, filterMilestone, sortBy, sortDir]);
 
-  const toggleTask = (id: string) => {
-    const next = new Set(selectedTasks);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    setSelectedTasks(next);
+  const getSprintName = (sprintId: string | undefined): string => {
+    if (!sprintId) return 'No Sprint';
+    const sprint = sprints.find((s) => s.id === sprintId);
+    return sprint?.name || 'Unknown Sprint';
   };
 
-  const toggleAll = () => {
-    if (selectedTasks.size === filteredTasks.length) {
-      setSelectedTasks(new Set());
-    } else {
-      setSelectedTasks(new Set(filteredTasks.map((t) => t.id)));
-    }
-  };
-
-  const moveToSprint = async (sprintId: string) => {
-    if (selectedTasks.size === 0) return;
-    setMovingToSprint(true);
-
-    try {
-      const updates = Array.from(selectedTasks).map((taskId) =>
-        fetch(`/api/tasks/${taskId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sprint_id: sprintId }),
-        })
-      );
-
-      await Promise.all(updates);
-      setTasks((prev) => prev.filter((t) => !selectedTasks.has(t.id)));
-      setSelectedTasks(new Set());
-    } catch (error) {
-      console.error('Failed to move tasks:', error);
-    } finally {
-      setMovingToSprint(false);
-      setShowSprintDropdown(false);
-    }
-  };
-
-  const getAgentName = (agentId: string | null) => {
-    if (!agentId) return '-';
-    const agent = agents.find((a) => a.id === agentId);
-    return agent?.name || '-';
-  };
-
-  const getMilestoneName = (milestoneId: string | undefined) => {
-    if (!milestoneId) return '-';
+  const getMilestoneName = (milestoneId: string | undefined): string => {
+    if (!milestoneId) return 'No Milestone';
     const milestone = milestones.find((m) => m.id === milestoneId);
-    return milestone?.name || '-';
+    return milestone?.name || 'Unknown Milestone';
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-mc-bg flex items-center justify-center">
-        <div className="flex flex-col items-center">
-          <Image src="/logo.png" alt="Blockether" width={40} height={40} priority className="mb-3 animate-pulse rounded" />
-          <p className="text-mc-text-secondary">Loading backlog...</p>
-        </div>
-      </div>
-    );
-  }
+  const getAgent = (agentId: string | null | undefined): Agent | undefined => {
+    if (!agentId) return undefined;
+    return agents.find((a) => a.id === agentId);
+  };
+
+  const toggleSort = (field: 'priority' | 'created' | 'title') => {
+    if (sortBy === field) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortDir('desc');
+    }
+  };
 
   if (!workspace) {
     return (
       <div className="min-h-screen bg-mc-bg flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-xl font-semibold mb-2">Workspace Not Found</h1>
-          <Link href="/" className="text-mc-accent hover:underline">
-            Back to Dashboard
-          </Link>
+        <div className="flex flex-col items-center">
+          <Image src="/logo.png" alt="Blockether" width={40} height={40} priority className="mb-4 animate-pulse rounded" />
+          <p className="text-mc-text-secondary">Loading workspace...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-mc-bg pb-[calc(1rem+env(safe-area-inset-bottom))]">
-      <header className="border-b border-mc-border bg-mc-bg-secondary px-4 sm:px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+    <div className="min-h-screen bg-mc-bg flex flex-col">
+      <Header workspace={workspace} />
+
+      <main className="flex-1 p-4 md:p-6 overflow-auto">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-4 mb-6">
             <Link
               href={`/workspace/${workspace.slug}`}
-              className="min-h-11 min-w-11 px-3 rounded-lg border border-mc-border bg-mc-bg flex items-center justify-center hover:bg-mc-bg-tertiary"
+              className="flex items-center gap-2 text-mc-text-secondary hover:text-mc-text transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm">Back to Workspace</span>
             </Link>
-            <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-semibold truncate">Backlog</h1>
-              <p className="text-xs sm:text-sm text-mc-text-secondary truncate">{workspace.name}</p>
-            </div>
           </div>
 
-          {selectedTasks.size > 0 && (
-            <div className="relative">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <Target className="w-6 h-6 text-mc-accent" />
+                Backlog
+              </h1>
+              <p className="text-mc-text-secondary text-sm mt-1">
+                All tasks across sprints and the backlog
+              </p>
+            </div>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 min-h-11 bg-mc-accent text-white rounded text-sm font-medium hover:bg-mc-accent/90"
+            >
+              <CircleDot className="w-4 h-4" />
+              New Task
+            </button>
+          </div>
+
+          <div className="bg-mc-bg-secondary border border-mc-border rounded-xl overflow-hidden">
+            <div className="p-4 border-b border-mc-border flex flex-wrap items-center gap-3">
               <button
-                onClick={() => setShowSprintDropdown(!showSprintDropdown)}
-                disabled={movingToSprint}
-                className="flex items-center gap-2 min-h-11 px-4 bg-mc-accent text-white rounded-lg text-sm font-medium hover:bg-mc-accent/90 disabled:opacity-50"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 px-3 min-h-11 rounded-lg border text-sm font-medium transition-colors ${
+                  showFilters ? 'bg-mc-accent text-white border-mc-accent' : 'border-mc-border text-mc-text-secondary hover:bg-mc-bg-tertiary'
+                }`}
               >
-                <ArrowRight className="w-4 h-4" />
-                Move to Sprint ({selectedTasks.size})
-                <ChevronDown className="w-4 h-4" />
+                <Filter className="w-4 h-4" />
+                Filters
+                {(filterSprint !== 'all' || filterType !== 'all' || filterPriority !== 'all' || filterMilestone !== 'all') && (
+                  <span className="w-2 h-2 rounded-full bg-mc-accent-green" />
+                )}
               </button>
 
-              {showSprintDropdown && (
-                <div className="absolute right-0 top-full mt-1 w-56 bg-mc-bg-secondary border border-mc-border rounded-lg shadow-lg z-10 py-1">
-                  {eligibleSprints.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-mc-text-secondary">No active or planning sprints</div>
-                  ) : (
-                    eligibleSprints.map((sprint) => (
-                      <button
-                        key={sprint.id}
-                        onClick={() => moveToSprint(sprint.id)}
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-mc-bg-tertiary flex items-center gap-2"
-                      >
-                        <span className="truncate">{sprint.name}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${sprint.status === 'active' ? 'bg-mc-accent-green/20 text-mc-accent-green' : 'bg-mc-accent-yellow/20 text-mc-accent-yellow'}`}>
-                          {sprint.status}
-                        </span>
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
+              <div className="flex items-center gap-2 text-sm text-mc-text-secondary">
+                <span>{filteredTasks.length} tasks</span>
+              </div>
+
+              <div className="flex-1" />
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-mc-text-secondary">Sort:</span>
+                <button
+                  onClick={() => toggleSort('created')}
+                  className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
+                    sortBy === 'created' ? 'bg-mc-accent text-white' : 'bg-mc-bg-tertiary text-mc-text-secondary hover:text-mc-text'
+                  }`}
+                >
+                  <ArrowUpDown className="w-3 h-3" />
+                  Created
+                </button>
+                <button
+                  onClick={() => toggleSort('priority')}
+                  className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
+                    sortBy === 'priority' ? 'bg-mc-accent text-white' : 'bg-mc-bg-tertiary text-mc-text-secondary hover:text-mc-text'
+                  }`}
+                >
+                  <ArrowUpDown className="w-3 h-3" />
+                  Priority
+                </button>
+                <button
+                  onClick={() => toggleSort('title')}
+                  className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
+                    sortBy === 'title' ? 'bg-mc-accent text-white' : 'bg-mc-bg-tertiary text-mc-text-secondary hover:text-mc-text'
+                  }`}
+                >
+                  <ArrowUpDown className="w-3 h-3" />
+                  Title
+                </button>
+              </div>
             </div>
-          )}
+
+            {showFilters && (
+              <div className="p-4 border-b border-mc-border bg-mc-bg-tertiary/50 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs text-mc-text-secondary mb-1.5">Sprint</label>
+                  <select
+                    value={filterSprint}
+                    onChange={(e) => setFilterSprint(e.target.value)}
+                    className="w-full min-h-11 px-3 rounded-lg border border-mc-border bg-mc-bg text-sm focus:outline-none focus:ring-2 focus:ring-mc-accent/50"
+                  >
+                    <option value="all">All Sprints</option>
+                    <option value="none">No Sprint (Backlog)</option>
+                    {sprints.map((sprint) => (
+                      <option key={sprint.id} value={sprint.id}>
+                        {sprint.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-mc-text-secondary mb-1.5">Type</label>
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value as TaskType | 'all')}
+                    className="w-full min-h-11 px-3 rounded-lg border border-mc-border bg-mc-bg text-sm focus:outline-none focus:ring-2 focus:ring-mc-accent/50"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="bug">Bug</option>
+                    <option value="feature">Feature</option>
+                    <option value="chore">Chore</option>
+                    <option value="documentation">Documentation</option>
+                    <option value="research">Research</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-mc-text-secondary mb-1.5">Priority</label>
+                  <select
+                    value={filterPriority}
+                    onChange={(e) => setFilterPriority(e.target.value as TaskPriority | 'all')}
+                    className="w-full min-h-11 px-3 rounded-lg border border-mc-border bg-mc-bg text-sm focus:outline-none focus:ring-2 focus:ring-mc-accent/50"
+                  >
+                    <option value="all">All Priorities</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="high">High</option>
+                    <option value="normal">Normal</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-mc-text-secondary mb-1.5">Milestone</label>
+                  <select
+                    value={filterMilestone}
+                    onChange={(e) => setFilterMilestone(e.target.value)}
+                    className="w-full min-h-11 px-3 rounded-lg border border-mc-border bg-mc-bg text-sm focus:outline-none focus:ring-2 focus:ring-mc-accent/50"
+                  >
+                    <option value="all">All Milestones</option>
+                    <option value="none">No Milestone</option>
+                    {milestones.map((milestone) => (
+                      <option key={milestone.id} value={milestone.id}>
+                        {milestone.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {loading ? (
+              <div className="p-12 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-mc-text-secondary" />
+              </div>
+            ) : filteredTasks.length === 0 ? (
+              <div className="p-12 text-center">
+                <Circle className="w-12 h-12 text-mc-border mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No Tasks Found</h3>
+                <p className="text-sm text-mc-text-secondary mb-4">
+                  {tasks.length === 0
+                    ? 'Create your first task to get started.'
+                    : 'No tasks match the current filters.'}
+                </p>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center gap-2 px-4 min-h-11 bg-mc-accent text-white rounded text-sm font-medium hover:bg-mc-accent/90"
+                >
+                  <CircleDot className="w-4 h-4" />
+                  New Task
+                </button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-mc-border bg-mc-bg-tertiary/30">
+                      <th className="text-left px-4 py-3 text-xs font-medium text-mc-text-secondary uppercase tracking-wider">
+                        Task
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-mc-text-secondary uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-mc-text-secondary uppercase tracking-wider">
+                        Priority
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-mc-text-secondary uppercase tracking-wider">
+                        Sprint
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-mc-text-secondary uppercase tracking-wider">
+                        Milestone
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-mc-text-secondary uppercase tracking-wider">
+                        Assignee
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-mc-text-secondary uppercase tracking-wider">
+                        Created
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-mc-border">
+                    {filteredTasks.map((task) => {
+                      const TypeIcon = TASK_TYPE_CONFIG[task.task_type].icon;
+                      const typeColor = TASK_TYPE_CONFIG[task.task_type].color;
+                      const assignee = getAgent(task.assigned_agent_id);
+
+                      return (
+                        <tr
+                          key={task.id}
+                          onClick={() => setEditingTask(task)}
+                          className="cursor-pointer hover:bg-mc-bg-tertiary/30 transition-colors"
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <TypeIcon className={`w-4 h-4 flex-shrink-0 ${typeColor}`} />
+                              <span className="font-medium text-sm truncate max-w-[200px]">
+                                {task.title}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-mc-bg-tertiary text-mc-text-secondary capitalize">
+                              {task.status.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1.5">
+                              <Flag
+                                className={`w-3.5 h-3.5 ${
+                                  task.priority === 'urgent'
+                                    ? 'text-mc-accent-red'
+                                    : task.priority === 'high'
+                                    ? 'text-mc-accent-yellow'
+                                    : 'text-mc-text-secondary'
+                                }`}
+                              />
+                              <span className="text-xs capitalize">{task.priority}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs text-mc-text-secondary truncate max-w-[120px] block">
+                              {getSprintName(task.sprint_id)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs text-mc-text-secondary truncate max-w-[120px] block">
+                              {getMilestoneName(task.milestone_id)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {assignee ? (
+                              <div className="flex items-center gap-1.5">
+                                <AgentInitials name={assignee.name} size="xs" />
+                                <span className="text-xs truncate max-w-[100px]">{assignee.name}</span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-mc-text-secondary">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs text-mc-text-secondary">
+                              {format(parseISO(task.created_at), 'MMM d, yyyy')}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4">
-        <section className="bg-mc-bg-secondary border border-mc-border rounded-xl p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Filter className="w-4 h-4 text-mc-text-secondary" />
-
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value as TaskType | 'all')}
-              className="min-h-11 px-3 rounded-lg border border-mc-border bg-mc-bg text-sm"
-            >
-              <option value="all">All Types</option>
-              <option value="bug">Bug</option>
-              <option value="feature">Feature</option>
-              <option value="chore">Chore</option>
-              <option value="documentation">Documentation</option>
-              <option value="research">Research</option>
-            </select>
-
-            <select
-              value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value as TaskPriority | 'all')}
-              className="min-h-11 px-3 rounded-lg border border-mc-border bg-mc-bg text-sm"
-            >
-              <option value="all">All Priorities</option>
-              <option value="urgent">Urgent</option>
-              <option value="high">High</option>
-              <option value="normal">Normal</option>
-              <option value="low">Low</option>
-            </select>
-
-            <select
-              value={filterMilestone}
-              onChange={(e) => setFilterMilestone(e.target.value)}
-              className="min-h-11 px-3 rounded-lg border border-mc-border bg-mc-bg text-sm"
-            >
-              <option value="all">All Milestones</option>
-              {milestones.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-
-            <div className="flex-1" />
-
-            <select
-              value={`${sortBy}:${sortDir}`}
-              onChange={(e) => {
-                const [by, dir] = e.target.value.split(':');
-                setSortBy(by as typeof sortBy);
-                setSortDir(dir as typeof sortDir);
-              }}
-              className="min-h-11 px-3 rounded-lg border border-mc-border bg-mc-bg text-sm"
-            >
-              <option value="pareto:desc">Pareto Score (High to Low)</option>
-              <option value="pareto:asc">Pareto Score (Low to High)</option>
-              <option value="priority:asc">Priority (High to Low)</option>
-              <option value="priority:desc">Priority (Low to High)</option>
-              <option value="impact:desc">Impact (High to Low)</option>
-              <option value="impact:asc">Impact (Low to High)</option>
-              <option value="effort:asc">Effort (Low to High)</option>
-              <option value="effort:desc">Effort (High to Low)</option>
-            </select>
-          </div>
-        </section>
-
-        <section className="bg-mc-bg-secondary border border-mc-border rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
-              <thead className="bg-mc-bg-tertiary border-b border-mc-border">
-                <tr>
-                  <th className="w-10 px-3 py-3 text-left">
-                    <input
-                      type="checkbox"
-                      checked={selectedTasks.size === filteredTasks.length && filteredTasks.length > 0}
-                      onChange={toggleAll}
-                      className="rounded border-mc-border"
-                    />
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium uppercase text-mc-text-secondary">Type</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium uppercase text-mc-text-secondary">Title</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium uppercase text-mc-text-secondary">Priority</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium uppercase text-mc-text-secondary">Impact</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium uppercase text-mc-text-secondary">Effort</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium uppercase text-mc-text-secondary">Pareto</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium uppercase text-mc-text-secondary">Status</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium uppercase text-mc-text-secondary">Assignee</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium uppercase text-mc-text-secondary">Milestone</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium uppercase text-mc-text-secondary">Due</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTasks.length === 0 ? (
-                  <tr>
-                    <td colSpan={11} className="px-6 py-12 text-center text-mc-text-secondary">
-                      <div className="flex flex-col items-center gap-2">
-                        <Target className="w-8 h-8 text-mc-border" />
-                        <p>No tasks in backlog</p>
-                        <p className="text-sm">Tasks not assigned to a sprint will appear here</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredTasks.map((task) => {
-                    const typeConfig = TASK_TYPE_CONFIG[task.task_type];
-                    const paretoScore = (task.impact || 0) / Math.max(task.effort || 1, 1);
-
-                    return (
-                      <tr
-                        key={task.id}
-                        className={`border-b border-mc-border/50 hover:bg-mc-bg-tertiary/30 ${
-                          selectedTasks.has(task.id) ? 'bg-mc-accent/5' : ''
-                        }`}
-                      >
-                        <td className="px-3 py-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedTasks.has(task.id)}
-                            onChange={() => toggleTask(task.id)}
-                            className="rounded border-mc-border"
-                          />
-                        </td>
-                        <td className="px-3 py-3">
-                          <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded ${typeConfig.bgColor} ${typeConfig.color}`}>
-                            {typeConfig.icon}
-                          </div>
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className="font-medium text-sm line-clamp-1">{task.title}</span>
-                        </td>
-                        <td className="px-3 py-3">
-                          <div className="flex items-center gap-1.5">
-                            <Flag className={`w-3.5 h-3.5 ${
-                              task.priority === 'urgent' ? 'text-mc-accent-red' :
-                              task.priority === 'high' ? 'text-mc-accent-yellow' :
-                              task.priority === 'normal' ? 'text-mc-accent' : 'text-mc-text-secondary'
-                            }`} />
-                            <span className="text-sm capitalize">{task.priority}</span>
-                          </div>
-                        </td>
-                        <td className="px-3 py-3">
-                          <EffortImpactDots value={task.impact} />
-                        </td>
-                        <td className="px-3 py-3">
-                          <EffortImpactDots value={task.effort} />
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className={`text-sm font-medium ${paretoScore >= 1 ? 'text-mc-accent-green' : paretoScore >= 0.5 ? 'text-mc-accent' : 'text-mc-text-secondary'}`}>
-                            {paretoScore.toFixed(1)}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className="text-sm capitalize text-mc-text-secondary">{task.status.replace('_', ' ')}</span>
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className="text-sm text-mc-text-secondary">{getAgentName(task.assigned_agent_id)}</span>
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className="text-sm text-mc-text-secondary">{getMilestoneName(task.milestone_id)}</span>
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className="text-sm text-mc-text-secondary">
-                            {task.due_date ? format(parseISO(task.due_date), 'MMM d') : '-'}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
       </main>
-    </div>
-  );
-}
 
-function EffortImpactDots({ value }: { value?: number }) {
-  const val = value ?? 0;
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((i) => (
-        i <= val ? (
-          <CircleDot key={i} className="w-3 h-3 text-mc-accent" />
-        ) : (
-          <Circle key={i} className="w-3 h-3 text-mc-border" />
-        )
-      ))}
+      {showCreateModal && (
+        <TaskModal
+          onClose={() => setShowCreateModal(false)}
+          workspaceId={workspace.id}
+        />
+      )}
+      {editingTask && (
+        <TaskModal
+          task={editingTask}
+          onClose={() => setEditingTask(null)}
+          workspaceId={workspace.id}
+        />
+      )}
     </div>
   );
 }

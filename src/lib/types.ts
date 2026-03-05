@@ -60,8 +60,10 @@ export interface Milestone {
   description?: string;
   due_date?: string;
   status: MilestoneStatus;
+  coordinator_agent_id?: string;
   created_at: string;
   updated_at: string;
+  coordinator?: Agent;
 }
 
 export interface Sprint {
@@ -69,13 +71,12 @@ export interface Sprint {
   workspace_id: string;
   name: string;
   goal?: string;
-  milestone_id?: string;
+  sprint_number?: number;
   start_date: string;
   end_date: string;
   status: SprintStatus;
   created_at: string;
   updated_at: string;
-  milestone?: Milestone;
 }
 
 export interface Tag {

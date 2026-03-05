@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { ChevronLeft, ListTodo, Users, Activity } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { AgentsSidebar } from '@/components/AgentsSidebar';
-import { MissionQueue } from '@/components/MissionQueue';
+import { ActiveSprint } from '@/components/ActiveSprint';
 import { LiveFeed } from '@/components/LiveFeed';
 import { SSEDebugPanel } from '@/components/SSEDebugPanel';
 import { useMissionControl } from '@/lib/store';
@@ -15,7 +15,7 @@ import { useSSE } from '@/hooks/useSSE';
 import { debug } from '@/lib/debug';
 import type { Task, Workspace } from '@/lib/types';
 
-type MobileTab = 'queue' | 'agents' | 'feed';
+type MobileTab = 'sprint' | 'agents' | 'feed';
 
 export default function WorkspacePage() {
   const params = useParams();
@@ -25,7 +25,7 @@ export default function WorkspacePage() {
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [mobileTab, setMobileTab] = useState<MobileTab>('queue');
+  const [mobileTab, setMobileTab] = useState<MobileTab>('sprint');
   const [isPortrait, setIsPortrait] = useState(true);
 
   useSSE();
@@ -68,7 +68,7 @@ export default function WorkspacePage() {
   }, [slug, setIsLoading]);
 
   useEffect(() => {
-    if (!isPortrait && mobileTab === 'queue') {
+    if (!isPortrait && mobileTab === 'sprint') {
       setMobileTab('agents');
     }
   }, [isPortrait, mobileTab]);
@@ -209,7 +209,7 @@ export default function WorkspacePage() {
 
       <div className="hidden lg:flex flex-1 overflow-hidden">
         <AgentsSidebar workspaceId={workspace.id} />
-        <MissionQueue workspaceId={workspace.id} />
+        <ActiveSprint workspaceId={workspace.id} />
         <LiveFeed />
       </div>
 
@@ -218,13 +218,13 @@ export default function WorkspacePage() {
           <div className="h-full flex flex-col">
             <div className="flex items-center gap-1 px-3 py-2 border-b border-mc-border bg-mc-bg-secondary shrink-0">
               <button
-                onClick={() => setMobileTab('queue')}
+                onClick={() => setMobileTab('sprint')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  mobileTab === 'queue' ? 'bg-mc-accent text-white' : 'text-mc-text-secondary hover:text-mc-text'
+                  mobileTab === 'sprint' ? 'bg-mc-accent text-white' : 'text-mc-text-secondary hover:text-mc-text'
                 }`}
               >
                 <ListTodo className="w-4 h-4" />
-                Queue
+                Sprint
               </button>
               <button
                 onClick={() => setMobileTab('agents')}
@@ -246,7 +246,7 @@ export default function WorkspacePage() {
               </button>
             </div>
             <div className="flex-1 min-h-0 overflow-hidden">
-              {mobileTab === 'queue' && <MissionQueue workspaceId={workspace.id} mobileMode isPortrait />}
+              {mobileTab === 'sprint' && <ActiveSprint workspaceId={workspace.id} mobileMode isPortrait />}
               {mobileTab === 'agents' && (
                 <div className="h-full p-3 overflow-y-auto">
                   <AgentsSidebar workspaceId={workspace.id} mobileMode isPortrait />
@@ -261,7 +261,7 @@ export default function WorkspacePage() {
           </div>
         ) : (
           <div className="h-full p-3 grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-3">
-            <MissionQueue workspaceId={workspace.id} mobileMode isPortrait={false} />
+            <ActiveSprint workspaceId={workspace.id} mobileMode isPortrait={false} />
             <div className="min-w-0 h-full flex flex-col gap-3">
               <div className="grid grid-cols-2 gap-2">
                 <button

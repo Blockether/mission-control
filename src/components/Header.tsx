@@ -11,8 +11,6 @@ import {
   Folder,
   ListTodo,
   Inbox,
-  Calendar,
-  Flag,
   BarChart3,
   Activity,
 } from 'lucide-react';
@@ -35,7 +33,7 @@ interface NavItem {
 function getNavItems(slug: string): NavItem[] {
   return [
     {
-      label: 'Queue',
+      label: 'Active Sprint',
       href: `/workspace/${slug}`,
       icon: <ListTodo className="w-4 h-4" />,
       matchPattern: (pathname, s) => pathname === `/workspace/${s}` || pathname === `/workspace/${s}/`,
@@ -45,18 +43,6 @@ function getNavItems(slug: string): NavItem[] {
       href: `/workspace/${slug}/backlog`,
       icon: <Inbox className="w-4 h-4" />,
       matchPattern: (pathname, s) => pathname.startsWith(`/workspace/${s}/backlog`),
-    },
-    {
-      label: 'Sprints',
-      href: `/workspace/${slug}/sprints`,
-      icon: <Calendar className="w-4 h-4" />,
-      matchPattern: (pathname, s) => pathname.startsWith(`/workspace/${s}/sprints`),
-    },
-    {
-      label: 'Milestones',
-      href: `/workspace/${slug}/milestones`,
-      icon: <Flag className="w-4 h-4" />,
-      matchPattern: (pathname, s) => pathname.startsWith(`/workspace/${s}/milestones`),
     },
     {
       label: 'Pareto',

@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS milestones (
   description TEXT,
   due_date TEXT,
   status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+  coordinator_agent_id TEXT REFERENCES agents(id) ON DELETE SET NULL,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
@@ -65,7 +66,7 @@ CREATE TABLE IF NOT EXISTS sprints (
   workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   goal TEXT,
-  milestone_id TEXT REFERENCES milestones(id) ON DELETE SET NULL,
+  sprint_number INTEGER,
   start_date TEXT NOT NULL,
   end_date TEXT NOT NULL,
   status TEXT DEFAULT 'planning' CHECK (status IN ('planning', 'active', 'completed', 'cancelled')),
