@@ -861,7 +861,7 @@ const migrations: Migration[] = [
           milestone_id TEXT NOT NULL REFERENCES milestones(id) ON DELETE CASCADE,
           depends_on_milestone_id TEXT REFERENCES milestones(id) ON DELETE CASCADE,
           depends_on_task_id TEXT REFERENCES tasks(id) ON DELETE CASCADE,
-          dependency_type TEXT DEFAULT 'blocks' CHECK (dependency_type IN ('blocks', 'relates_to', 'requires')),
+          dependency_type TEXT NOT NULL DEFAULT 'finish_to_start' CHECK (dependency_type IN ('finish_to_start', 'blocks')),
           created_at TEXT DEFAULT (datetime('now')),
           CHECK (
             (depends_on_milestone_id IS NOT NULL AND depends_on_task_id IS NULL)
