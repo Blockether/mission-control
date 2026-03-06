@@ -20,6 +20,7 @@ interface MissionControlState {
   // UI State
   selectedAgent: Agent | null;
   selectedTask: Task | null;
+  selectedSprintId: string | null;
   isOnline: boolean;
   isLoading: boolean;
   // Actions
@@ -33,6 +34,7 @@ interface MissionControlState {
   addMessage: (message: Message) => void;
   setSelectedAgent: (agent: Agent | null) => void;
   setSelectedTask: (task: Task | null) => void;
+  setSelectedSprintId: (id: string | null) => void;
   setIsOnline: (online: boolean) => void;
   setIsLoading: (loading: boolean) => void;
   // Task mutations
@@ -63,6 +65,7 @@ export const useMissionControl = create<MissionControlState>((set) => ({
   openclawMessages: [],
   selectedAgent: null,
   selectedTask: null,
+  selectedSprintId: null,
   isOnline: false,
   isLoading: true,
 
@@ -86,6 +89,7 @@ export const useMissionControl = create<MissionControlState>((set) => ({
     debug.store('setSelectedTask called', { id: task?.id, status: task?.status });
     set({ selectedTask: task });
   },
+  setSelectedSprintId: (id) => set({ selectedSprintId: id }),
   setIsOnline: (online) => {
     debug.store('setIsOnline called', { online });
     set({ isOnline: online });

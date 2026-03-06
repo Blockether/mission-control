@@ -13,16 +13,18 @@ import { ParetoView } from '@/components/ParetoView';
 import { AgentActivityDashboard } from '@/components/AgentActivityDashboard';
 import { LiveFeed } from '@/components/LiveFeed';
 import { SSEDebugPanel } from '@/components/SSEDebugPanel';
+import { GithubIssuesView } from '@/components/GithubIssuesView';
+import { TaskModal } from '@/components/TaskModal';
 import { useMissionControl } from '@/lib/store';
 import { useSSE } from '@/hooks/useSSE';
 import { debug } from '@/lib/debug';
-import type { Task, Workspace } from '@/lib/types';
+import type { Task, Workspace, GitHubIssue } from '@/lib/types';
 
 function getInitialView(): DashboardView {
   if (typeof window === 'undefined') return 'sprint';
   const params = new URLSearchParams(window.location.search);
   const urlView = params.get('view');
-  if (urlView && ['sprint', 'backlog', 'pareto', 'activity'].includes(urlView)) {
+  if (urlView && ['sprint', 'backlog', 'pareto', 'activity', 'issues'].includes(urlView)) {
     return urlView as DashboardView;
   }
   return 'sprint';
@@ -39,12 +41,13 @@ export default function WorkspacePage() {
   const [view, setView] = useState<DashboardView>(getInitialView);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isPortrait, setIsPortrait] = useState(true);
+  const [githubIssueForTask, setGithubIssueForTask] = useState<GitHubIssue | null>(null);
 
   useSSE();
 
   useEffect(() => {
     const urlView = new URLSearchParams(window.location.search).get('view');
-    if (urlView && ['sprint', 'backlog', 'pareto', 'activity'].includes(urlView)) {
+    if (urlView && ['sprint', 'backlog', 'pareto', 'activity', 'issues'].includes(urlView)) {
       setView(urlView as DashboardView);
     }
   }, []);
@@ -213,6 +216,8 @@ export default function WorkspacePage() {
         return <ParetoView workspaceId={workspace.id} />;
       case 'activity':
         return <AgentActivityDashboard workspace={workspace} embedded />;
+      case 'issues':
+        return <GithubIssuesView workspaceId={workspace.id} workspace={workspace} onCreateTask={(issue) => setGithubIssueForTask(issue)} />;
       default:
         return <ActiveSprint workspaceId={workspace.id} />;
     }
@@ -276,6 +281,13 @@ export default function WorkspacePage() {
       </div>
 
       <SSEDebugPanel />
+      {githubIssueForTask && (
+        <TaskModal
+          githubIssue={githubIssueForTask}
+          onClose={() => setGithubIssueForTask(null)}
+          workspaceId={workspace.id}
+        />
+      )}
     </div>
   );
 }

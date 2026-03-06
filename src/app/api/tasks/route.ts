@@ -127,9 +127,11 @@ export async function POST(request: NextRequest) {
     );
     const workflowTemplateId = defaultTemplate?.id || null;
 
+    const { github_issue_id } = validatedData;
+
     run(
-      `INSERT INTO tasks (id, title, description, status, priority, task_type, effort, impact, assigned_agent_id, created_by_agent_id, workspace_id, milestone_id, business_id, due_date, workflow_template_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO tasks (id, title, description, status, priority, task_type, effort, impact, assigned_agent_id, created_by_agent_id, workspace_id, milestone_id, business_id, due_date, workflow_template_id, github_issue_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         validatedData.title,
@@ -146,10 +148,16 @@ export async function POST(request: NextRequest) {
         validatedData.business_id || 'default',
         validatedData.due_date || null,
         workflowTemplateId,
+        github_issue_id || null,
         now,
         now,
       ]
     );
+
+    // Link github issue to this task if provided
+    if (github_issue_id) {
+      run('UPDATE github_issues SET task_id = ? WHERE id = ?', [id, github_issue_id]);
+    }
 
     // Log event
     let eventMessage = `New task: ${validatedData.title}`;

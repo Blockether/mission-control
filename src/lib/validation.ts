@@ -43,6 +43,7 @@ export const CreateTaskSchema = z.object({
   milestone_id: z.string().optional().nullable(),
   due_date: z.string().optional().nullable(),
   tags: z.array(z.string()).optional(),
+  github_issue_id: z.string().uuid().optional().nullable(),
 });
 
 export const UpdateTaskSchema = z.object({

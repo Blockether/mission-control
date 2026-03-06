@@ -10,7 +10,7 @@ import { SessionsList } from './SessionsList';
 import { PlanningTab } from './PlanningTab';
 import { TeamTab } from './TeamTab';
 import { AgentModal } from './AgentModal';
-import type { Task, TaskPriority, TaskStatus, TaskType } from '@/lib/types';
+import type { Task, TaskPriority, TaskStatus, TaskType, GitHubIssue } from '@/lib/types';
 
 type TabType = 'overview' | 'planning' | 'team' | 'activity' | 'deliverables' | 'sessions';
 
@@ -19,9 +19,10 @@ interface TaskModalProps {
   onClose: () => void;
   workspaceId?: string;
   defaultSprintId?: string;
+  githubIssue?: GitHubIssue;
 }
 
-export function TaskModal({ task, onClose, workspaceId, defaultSprintId }: TaskModalProps) {
+export function TaskModal({ task, onClose, workspaceId, defaultSprintId, githubIssue }: TaskModalProps) {
   const { agents, addTask, updateTask, addEvent } = useMissionControl();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAgentModal, setShowAgentModal] = useState(false);
@@ -35,8 +36,8 @@ export function TaskModal({ task, onClose, workspaceId, defaultSprintId }: TaskM
   }, []);
 
   const [form, setForm] = useState({
-    title: task?.title || '',
-    description: task?.description || '',
+    title: githubIssue?.title || task?.title || '',
+    description: githubIssue?.body || task?.description || '',
     priority: task?.priority || 'normal' as TaskPriority,
     status: task?.status || 'inbox' as TaskStatus,
     assigned_agent_id: task?.assigned_agent_id || '',
@@ -44,6 +45,7 @@ export function TaskModal({ task, onClose, workspaceId, defaultSprintId }: TaskM
     effort: task?.effort || null as number | null,
     impact: task?.impact || null as number | null,
     milestone_id: task?.milestone_id || '',
+    github_issue_id: githubIssue?.id || task?.github_issue_id || null as string | null,
   });
 
   const [acceptanceCriteria, setAcceptanceCriteria] = useState<string[]>([]);
@@ -180,6 +182,7 @@ export function TaskModal({ task, onClose, workspaceId, defaultSprintId }: TaskM
           effort: null,
           impact: null,
           milestone_id: '',
+          github_issue_id: null,
         });
         setUsePlanningMode(false);
         setAcceptanceCriteria([]);

@@ -278,7 +278,7 @@ Fallback: Task polling every 60s, event polling every 30s.
 ### Core Tables
 - **workspaces** -- slug, name, description, icon, github_repo, owner_email, coordinator_email, logo_url
 - **agents** -- name, role, status, model, source, gateway_agent_id, session_key_prefix, agent_dir, agent_workspace_path, soul_md, user_md, agents_md. No `is_master` column.
-- **tasks** -- title, description, status, priority, task_type, effort, impact, assigned_agent_id, milestone_id, workflow_template_id, due_date, planning fields. No `sprint_id`. No `parent_task_id`.
+- **tasks** -- title, description, status, priority, task_type, effort, impact, assigned_agent_id, milestone_id, workflow_template_id, due_date, github_issue_id (nullable FK to github_issues), planning fields. No `sprint_id`. No `parent_task_id`.
 - **sprints** -- workspace_id, name, goal, sprint_number, start_date, end_date, status
 - **milestones** -- workspace_id, name, description, due_date, status, coordinator_agent_id, sprint_id (FK nullable), priority ('low'|'normal'|'high'|'urgent')
 - **milestone_dependencies** -- id, milestone_id, depends_on_milestone_id (nullable), depends_on_task_id (nullable), dependency_type ('finish_to_start'|'blocks')
@@ -303,8 +303,48 @@ Fallback: Task polling every 60s, event polling every 30s.
 - **conversations** / **messages** / **conversation_participants** -- agent-to-agent messaging
 - **planning_questions** / **planning_specs** -- AI planning Q&A flow
 - **businesses** -- legacy table, kept for compatibility
+- **github_issues** -- workspace_id, github_id (integer), issue_number, title, body, state ('open'|'closed'), state_reason, labels (JSON string), assignees (JSON string), github_url, author, created_at_github, updated_at_github, synced_at, task_id (nullable FK to tasks). Unique constraint on (workspace_id, issue_number). Indexes on workspace_id and (workspace_id, state).
 
 ---
+
+---
+
+## GitHub Issues Integration
+
+GitHub Issues are synced from the workspace's `github_repo` URL using the `gh` CLI (authenticated as `michal-blockether`).
+
+### Endpoints
+
+- `POST /api/workspaces/[id]/github/sync` -- Trigger manual sync for one workspace. Runs `gh issue list --repo owner/repo --json ... --limit 200 --state all`, upserts into `github_issues` table, broadcasts `github_issues_synced` SSE event. Returns `{ synced_count, workspace_id }`.
+- `GET /api/workspaces/[id]/github/issues?state=open|closed|all` -- Return cached issues from DB. Left-joins `tasks` to expose `task_id` per issue.
+- `GET /api/cron/github-sync` -- Sync all workspaces with a configured `github_repo`. Localhost-only or Bearer token auth. Returns `{ synced_workspaces, total_issues, errors? }`.
+
+### Cron Job
+
+Installed in `/var/spool/cron/crontabs/root`:
+```
+*/10 * * * * curl -s -o /dev/null http://localhost:4000/api/cron/github-sync
+```
+Runs every 10 minutes. Silent mode (`-s -o /dev/null`).
+
+### Task Link Pattern
+
+When a task is created from a GitHub issue:
+1. `POST /api/tasks` body includes `github_issue_id` (UUID of the `github_issues` row).
+2. The tasks route INSERTs with `github_issue_id` and then runs `UPDATE github_issues SET task_id = ? WHERE id = ?`.
+3. The issues list endpoint returns `task_id` so the UI can show linked state.
+
+### UI
+
+- `GithubIssuesView` component: toolbar with Sync Now button and state filter (Open/Closed/All), issue cards with state badge, labels, assignee initials, ExternalLink to GitHub, Create Task button (disabled if already linked).
+- Accessible via `DashboardView = 'issues'` in the workspace page sidebar.
+- "Create Task" opens `TaskModal` pre-filled with issue title and body.
+
+### Notes
+
+- `Blockether/mission-control` has GitHub Issues DISABLED. Use `Blockether/spel` (workspace `f46fd2b7`) for testing.
+- `gh` CLI must be authenticated with `repo` scope.
+- Labels and assignees are stored as JSON strings in the DB.
 
 ## Authentication
 

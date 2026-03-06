@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.0] - 2026-03-06
+
+### Added
+- GitHub Issues integration: `github_issues` table (migration 021), `tasks.github_issue_id` FK
+- `POST /api/workspaces/[id]/github/sync` endpoint: syncs issues from GitHub via `gh` CLI
+- `GET /api/workspaces/[id]/github/issues` endpoint: returns cached issues with task link status
+- `GET /api/cron/github-sync` endpoint: syncs all workspaces, runs every 10 minutes via cron
+- `GithubIssuesView` component: read-only issues list with Sync Now, state filter, Create Task action
+- Sprint history collapsible section in `AgentsSidebar` (last 10 completed/cancelled sprints)
+- `selectedSprintId` in Zustand store for cross-component sprint navigation from sidebar
+- `TaskModal` accepts `githubIssue` prop to pre-fill title and description from a GitHub issue
+- `github_issue_id` field in `CreateTaskSchema` and tasks INSERT SQL
+- `DashboardView` extended with `'issues'` view type
+
+### Fixed
+- Main agent (`id = 'main'`) now syncs with `role = 'orchestrator'` instead of H1 heading from system.md
+- Agent list ordering: orchestrator always appears first (CASE WHEN sort)
+- POST /api/agents guard: rejects all requests with `source` field in body
+
+---
+
 ## [1.5.0] - 2026-03-06
 
 ### Added

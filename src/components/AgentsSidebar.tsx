@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronRight, ChevronLeft, RefreshCw, ListTodo, Inbox, BarChart3, Activity, X, Crown } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ChevronDown, RefreshCw, ListTodo, Inbox, BarChart3, Activity, X, Crown, CircleDot, Clock } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
-import type { Agent, AgentStatus, OpenClawSession } from '@/lib/types';
+import type { Agent, AgentStatus, OpenClawSession, Sprint } from '@/lib/types';
 import { AgentModal } from './AgentModal';
 import { AgentInitials } from './AgentInitials';
 import type { DashboardView } from './Header';
@@ -23,6 +23,7 @@ const NAV_ITEMS = [
   { label: 'Backlog', view: 'backlog' as DashboardView, icon: <Inbox className="w-4 h-4" /> },
   { label: 'Pareto', view: 'pareto' as DashboardView, icon: <BarChart3 className="w-4 h-4" /> },
   { label: 'Activity', view: 'activity' as DashboardView, icon: <Activity className="w-4 h-4" /> },
+  { label: 'Issues', view: 'issues' as DashboardView, icon: <CircleDot className="w-4 h-4" /> },
 ];
 
 export function AgentsSidebar({ 
@@ -32,12 +33,14 @@ export function AgentsSidebar({
   open = false,
   onClose 
 }: AgentsSidebarProps) {
-  const { agents, selectedAgent, setSelectedAgent, setAgents, agentOpenClawSessions, setAgentOpenClawSession } = useMissionControl();
+  const { agents, selectedAgent, setSelectedAgent, setAgents, agentOpenClawSessions, setAgentOpenClawSession, setSelectedSprintId } = useMissionControl();
   const [filter, setFilter] = useState<FilterTab>('all');
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [activeSubAgents, setActiveSubAgents] = useState(0);
   const [isMinimized, setIsMinimized] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [completedSprints, setCompletedSprints] = useState<Sprint[]>([]);
 
   const toggleMinimize = () => setIsMinimized(!isMinimized);
 
@@ -89,6 +92,20 @@ export function AgentsSidebar({
     const interval = setInterval(loadSubAgentCount, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!workspaceId || !historyOpen) return;
+    fetch(`/api/sprints?workspace_id=${workspaceId}`)
+      .then(r => r.json())
+      .then(data => {
+        const done = (Array.isArray(data) ? data : [])
+          .filter((s: Sprint) => s.status === 'completed' || s.status === 'cancelled')
+          .sort((a: Sprint, b: Sprint) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 10);
+        setCompletedSprints(done);
+      })
+      .catch(() => {});
+  }, [workspaceId, historyOpen]);
 
   const handleSyncGateway = async () => {
     setSyncing(true);
@@ -166,6 +183,43 @@ export function AgentsSidebar({
                 );
               })}
             </div>
+          </div>
+
+          {/* Sprint History - mobile */}
+          <div className="border-b border-mc-border">
+            <button
+              onClick={() => setHistoryOpen(!historyOpen)}
+              className="w-full p-3 flex items-center justify-between text-sm text-mc-text-secondary hover:text-mc-text hover:bg-mc-bg-tertiary transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                <span className="uppercase tracking-wider font-medium text-xs">History</span>
+              </div>
+              {historyOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </button>
+            {historyOpen && (
+              <div className="px-2 pb-2 space-y-1">
+                {completedSprints.length === 0 ? (
+                  <p className="text-xs text-mc-text-secondary px-3 py-2">No completed sprints</p>
+                ) : (
+                  completedSprints.map(sprint => (
+                    <button
+                      key={sprint.id}
+                      onClick={() => {
+                        setSelectedSprintId(sprint.id);
+                        handleNavClick('sprint');
+                      }}
+                      className="w-full text-left px-3 py-2 rounded text-xs hover:bg-mc-bg-tertiary transition-colors"
+                    >
+                      <div className="font-medium text-mc-text truncate">{sprint.name}</div>
+                      <div className="text-mc-text-secondary mt-0.5">
+                        {sprint.status === 'completed' ? 'Completed' : 'Cancelled'}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           <div className="p-3 border-b border-mc-border">
@@ -316,6 +370,56 @@ export function AgentsSidebar({
           </div>
         )}
       </div>
+
+      {/* Sprint History - desktop */}
+      {!isMinimized && (
+        <div className="border-b border-mc-border">
+          <button
+            onClick={() => setHistoryOpen(!historyOpen)}
+            className="w-full p-3 flex items-center justify-between text-sm text-mc-text-secondary hover:text-mc-text hover:bg-mc-bg-tertiary transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span className="uppercase tracking-wider font-medium text-xs">History</span>
+            </div>
+            {historyOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </button>
+          {historyOpen && (
+            <div className="px-2 pb-2 space-y-1">
+              {completedSprints.length === 0 ? (
+                <p className="text-xs text-mc-text-secondary px-3 py-2">No completed sprints</p>
+              ) : (
+                completedSprints.map(sprint => (
+                  <button
+                    key={sprint.id}
+                    onClick={() => {
+                      setSelectedSprintId(sprint.id);
+                      handleNavClick('sprint');
+                    }}
+                    className="w-full text-left px-3 py-2 rounded text-xs hover:bg-mc-bg-tertiary transition-colors"
+                  >
+                    <div className="font-medium text-mc-text truncate">{sprint.name}</div>
+                    <div className="text-mc-text-secondary mt-0.5">
+                      {sprint.status === 'completed' ? 'Completed' : 'Cancelled'}
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      {isMinimized && (
+        <div className="border-b border-mc-border">
+          <button
+            onClick={() => setHistoryOpen(!historyOpen)}
+            className={`w-full flex justify-center py-2 rounded transition-colors ${historyOpen ? 'bg-mc-accent/10 text-mc-accent' : 'text-mc-text-secondary hover:text-mc-text hover:bg-mc-bg-tertiary'}`}
+            title="Sprint History"
+          >
+            <Clock className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       <div className="border-b border-mc-border" />
 

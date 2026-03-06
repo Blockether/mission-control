@@ -55,7 +55,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 export function ActiveSprint({ workspaceId, mobileMode = false, isPortrait = true }: ActiveSprintProps) {
-  const { tasks: storeTasks, updateTaskStatus, addEvent } = useMissionControl();
+  const { tasks: storeTasks, updateTaskStatus, addEvent, selectedSprintId: storeSelectedSprintId, setSelectedSprintId: setStoreSelectedSprintId } = useMissionControl();
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -71,6 +71,14 @@ export function ActiveSprint({ workspaceId, mobileMode = false, isPortrait = tru
   const [selectedBoardStatus, setSelectedBoardStatus] = useState<TaskStatus>('planning');
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set());
+
+  // Sync store-selected sprint to local state (from sidebar history navigation)
+  useEffect(() => {
+    if (storeSelectedSprintId) {
+      setSelectedSprintId(storeSelectedSprintId);
+      setStoreSelectedSprintId(null);
+    }
+  }, [storeSelectedSprintId, setStoreSelectedSprintId]);
 
   // Initial data load (sprints + agents only)
   useEffect(() => {

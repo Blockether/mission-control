@@ -17,11 +17,11 @@ export async function GET(request: NextRequest) {
     if (workspaceId) {
       agents = queryAll<Agent>(`
         SELECT * FROM agents WHERE workspace_id = ? OR source = 'synced'
-        ORDER BY role ASC, name ASC
+        ORDER BY CASE WHEN role = 'orchestrator' THEN 0 ELSE 1 END, name ASC
       `, [workspaceId]);
     } else {
       agents = queryAll<Agent>(`
-        SELECT * FROM agents ORDER BY role ASC, name ASC
+        SELECT * FROM agents ORDER BY CASE WHEN role = 'orchestrator' THEN 0 ELSE 1 END, name ASC
       `);
     }
     for (const agent of agents) {
@@ -46,9 +46,12 @@ export async function POST(request: NextRequest) {
   try {
     const body: CreateAgentRequest = await request.json();
 
-    if (!(body as { source?: string }).source || (body as { source?: string }).source !== 'synced') {
+    // Reject all external POST requests - agents are synced from OpenClaw Gateway only
+    // The 'source' field must never be accepted from external callers
+    if ((body as { source?: string }).source) {
       return NextResponse.json({ error: 'Standalone agent creation is disabled. Agents are synced from OpenClaw Gateway.' }, { status: 403 });
     }
+    return NextResponse.json({ error: 'Standalone agent creation is disabled. Agents are synced from OpenClaw Gateway.' }, { status: 403 });
 
     if (!body.name || !body.role) {
       return NextResponse.json({ error: 'Name and role are required' }, { status: 400 });

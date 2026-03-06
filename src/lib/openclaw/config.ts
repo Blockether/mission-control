@@ -131,7 +131,7 @@ export function resolveAgents(config: OpenClawFullConfig): ResolvedAgent[] {
 
     const name = agent.identity?.name || agent.name || agent.id;
     const model = agent.model || defaultModel;
-    const role = extractRoleFromSystemMd(systemMd, name);
+    const role = agent.id === 'main' ? 'orchestrator' : extractRoleFromSystemMd(systemMd, name);
 
     return {
       id: agent.id,
