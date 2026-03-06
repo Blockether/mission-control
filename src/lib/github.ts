@@ -6,7 +6,7 @@ interface GitHubRepoMeta {
   default_branch: string;
 }
 
-function extractOwnerRepo(githubRepo: string): { owner: string; repo: string } | null {
+export function extractOwnerRepo(githubRepo: string): { owner: string; repo: string } | null {
   const cleaned = githubRepo
     .replace(/^https?:\/\//, '')
     .replace(/^github\.com\//, '')
