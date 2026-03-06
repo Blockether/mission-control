@@ -32,7 +32,6 @@ CREATE TABLE IF NOT EXISTS agents (
   role TEXT NOT NULL,
   description TEXT,
   status TEXT DEFAULT 'standby' CHECK (status IN ('standby', 'working', 'offline')),
-  is_master INTEGER DEFAULT 0,
   workspace_id TEXT DEFAULT 'default' REFERENCES workspaces(id),
   soul_md TEXT,
   user_md TEXT,
@@ -56,8 +55,21 @@ CREATE TABLE IF NOT EXISTS milestones (
   due_date TEXT,
   status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
   coordinator_agent_id TEXT REFERENCES agents(id) ON DELETE SET NULL,
+  sprint_id TEXT REFERENCES sprints(id) ON DELETE SET NULL,
+  priority TEXT DEFAULT 'normal' CHECK (priority IN ('low','normal','high','urgent')),
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Milestone dependencies table
+CREATE TABLE IF NOT EXISTS milestone_dependencies (
+  id TEXT PRIMARY KEY,
+  milestone_id TEXT NOT NULL REFERENCES milestones(id) ON DELETE CASCADE,
+  depends_on_milestone_id TEXT REFERENCES milestones(id) ON DELETE CASCADE,
+  depends_on_task_id TEXT REFERENCES tasks(id) ON DELETE CASCADE,
+  dependency_type TEXT NOT NULL DEFAULT 'finish_to_start' CHECK (dependency_type IN ('finish_to_start','blocks')),
+  created_at TEXT DEFAULT (datetime('now')),
+  CHECK (depends_on_milestone_id IS NOT NULL OR depends_on_task_id IS NOT NULL)
 );
 
 -- Sprints table
@@ -87,9 +99,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   assigned_agent_id TEXT REFERENCES agents(id),
   created_by_agent_id TEXT REFERENCES agents(id),
   workspace_id TEXT DEFAULT 'default' REFERENCES workspaces(id),
-  sprint_id TEXT REFERENCES sprints(id) ON DELETE SET NULL,
   milestone_id TEXT REFERENCES milestones(id) ON DELETE SET NULL,
-  parent_task_id TEXT REFERENCES tasks(id) ON DELETE CASCADE,
   business_id TEXT DEFAULT 'default',
   due_date TEXT,
   workflow_template_id TEXT REFERENCES workflow_templates(id),
@@ -321,9 +331,10 @@ CREATE INDEX IF NOT EXISTS idx_workflow_templates_workspace ON workflow_template
 CREATE INDEX IF NOT EXISTS idx_task_roles_task ON task_roles(task_id);
 CREATE INDEX IF NOT EXISTS idx_knowledge_entries_workspace ON knowledge_entries(workspace_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_knowledge_entries_task ON knowledge_entries(task_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_sprint ON tasks(sprint_id);
+CREATE INDEX IF NOT EXISTS idx_milestones_sprint ON milestones(sprint_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_milestone ON tasks(milestone_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_parent ON tasks(parent_task_id);
+CREATE INDEX IF NOT EXISTS idx_milestone_deps_milestone ON milestone_dependencies(milestone_id);
+CREATE INDEX IF NOT EXISTS idx_milestone_deps_depends ON milestone_dependencies(depends_on_milestone_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_type ON tasks(task_type);
 CREATE INDEX IF NOT EXISTS idx_sprints_workspace ON sprints(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_milestones_workspace ON milestones(workspace_id);
