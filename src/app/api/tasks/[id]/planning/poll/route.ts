@@ -84,11 +84,11 @@ async function handlePlanningCompletion(taskId: string, parsed: any, messages: a
     const task = queryOne<{ workspace_id: string }>('SELECT workspace_id FROM tasks WHERE id = ?', [taskId]);
     if (task) {
       const defaultMaster = queryOne<{ id: string }>(
-        `SELECT id FROM agents WHERE is_master = 1 AND workspace_id = ? ORDER BY created_at ASC LIMIT 1`,
+        `SELECT id FROM agents WHERE role = 'orchestrator' AND workspace_id = ? ORDER BY created_at ASC LIMIT 1`,
         [task.workspace_id]
       );
       const otherOrchestrators = queryAll<{ id: string; name: string }>(
-        `SELECT id, name FROM agents WHERE is_master = 1 AND id != ? AND workspace_id = ? AND status != 'offline'`,
+        `SELECT id, name FROM agents WHERE role = 'orchestrator' AND id != ? AND workspace_id = ? AND status != 'offline'`,
         [defaultMaster?.id ?? '', task.workspace_id]
       );
 

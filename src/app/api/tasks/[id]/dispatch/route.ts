@@ -25,7 +25,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Get task with agent info
     const task = queryOne<Task & { assigned_agent_name?: string; workspace_id: string }>(
-      `SELECT t.*, a.name as assigned_agent_name, a.is_master
+      `SELECT t.*, a.name as assigned_agent_name
        FROM tasks t
        LEFT JOIN agents a ON t.assigned_agent_id = a.id
        WHERE t.id = ?`,
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check if dispatching to the master agent while there are other orchestrators available
-    if (agent.is_master) {
+    if (agent.role === 'orchestrator') {
       // Check for other master agents in the same workspace (excluding this one)
       const otherOrchestrators = queryAll<{
         id: string;
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }>(
         `SELECT id, name, role
          FROM agents
-         WHERE is_master = 1
+         WHERE role = 'orchestrator'
          AND id != ?
          AND workspace_id = ?
          AND status != 'offline'`,

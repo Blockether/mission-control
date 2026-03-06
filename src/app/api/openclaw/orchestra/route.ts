@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     }>(
       `SELECT id, name, role, status
        FROM agents
-       WHERE is_master = 1
+       WHERE role = 'orchestrator'
        AND workspace_id = ?
        AND status != 'offline'
        ORDER BY created_at ASC`,
