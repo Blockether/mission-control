@@ -840,6 +840,196 @@ const migrations: Migration[] = [
 
       console.log('[Migration 019] Done');
     }
+  },
+  {
+    id: '020',
+    name: 'hierarchy_agent_schema_restructure',
+    up: (db) => {
+      console.log('[Migration 020] Restructuring hierarchy + agent schema...');
+
+      const milestoneCols = (db.prepare(`PRAGMA table_info(milestones)`).all() as { name: string }[]).map(c => c.name);
+      if (!milestoneCols.includes('sprint_id')) {
+        db.exec(`ALTER TABLE milestones ADD COLUMN sprint_id TEXT REFERENCES sprints(id) ON DELETE SET NULL`);
+      }
+      if (!milestoneCols.includes('priority')) {
+        db.exec(`ALTER TABLE milestones ADD COLUMN priority TEXT DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent'))`);
+      }
+
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS milestone_dependencies (
+          id TEXT PRIMARY KEY,
+          milestone_id TEXT NOT NULL REFERENCES milestones(id) ON DELETE CASCADE,
+          depends_on_milestone_id TEXT REFERENCES milestones(id) ON DELETE CASCADE,
+          depends_on_task_id TEXT REFERENCES tasks(id) ON DELETE CASCADE,
+          dependency_type TEXT DEFAULT 'blocks' CHECK (dependency_type IN ('blocks', 'relates_to', 'requires')),
+          created_at TEXT DEFAULT (datetime('now')),
+          CHECK (
+            (depends_on_milestone_id IS NOT NULL AND depends_on_task_id IS NULL)
+            OR
+            (depends_on_milestone_id IS NULL AND depends_on_task_id IS NOT NULL)
+          )
+        )
+      `);
+
+      const taskCols = (db.prepare(`PRAGMA table_info(tasks)`).all() as { name: string }[]).map(c => c.name);
+      if (taskCols.includes('sprint_id') || taskCols.includes('parent_task_id')) {
+        db.exec(`
+          CREATE TABLE tasks_new_020 (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            description TEXT,
+            status TEXT DEFAULT 'inbox' CHECK (status IN ('pending_dispatch', 'planning', 'inbox', 'assigned', 'in_progress', 'testing', 'review', 'verification', 'done')),
+            priority TEXT DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+            task_type TEXT DEFAULT 'feature' CHECK (task_type IN ('bug', 'feature', 'chore', 'documentation', 'research')),
+            effort INTEGER CHECK (effort IS NULL OR (effort >= 1 AND effort <= 5)),
+            impact INTEGER CHECK (impact IS NULL OR (impact >= 1 AND impact <= 5)),
+            assigned_agent_id TEXT REFERENCES agents(id),
+            created_by_agent_id TEXT REFERENCES agents(id),
+            workspace_id TEXT DEFAULT 'default' REFERENCES workspaces(id),
+            milestone_id TEXT REFERENCES milestones(id) ON DELETE SET NULL,
+            business_id TEXT DEFAULT 'default',
+            due_date TEXT,
+            workflow_template_id TEXT REFERENCES workflow_templates(id),
+            planning_session_key TEXT,
+            planning_messages TEXT,
+            planning_complete INTEGER DEFAULT 0,
+            planning_spec TEXT,
+            planning_agents TEXT,
+            planning_dispatch_error TEXT,
+            status_reason TEXT,
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now'))
+          )
+        `);
+
+        db.exec(`
+          INSERT INTO tasks_new_020 (
+            id, title, description, status, priority, task_type, effort, impact,
+            assigned_agent_id, created_by_agent_id, workspace_id, milestone_id,
+            business_id, due_date, workflow_template_id, planning_session_key,
+            planning_messages, planning_complete, planning_spec, planning_agents,
+            planning_dispatch_error, status_reason, created_at, updated_at
+          )
+          SELECT
+            id, title, description, status, priority, task_type, effort, impact,
+            assigned_agent_id, created_by_agent_id, workspace_id, milestone_id,
+            business_id, due_date, workflow_template_id, planning_session_key,
+            planning_messages, planning_complete, planning_spec, planning_agents,
+            planning_dispatch_error, status_reason, created_at, updated_at
+          FROM tasks
+        `);
+
+        db.exec(`DROP TABLE tasks`);
+        db.exec(`ALTER TABLE tasks_new_020 RENAME TO tasks`);
+
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_assigned ON tasks(assigned_agent_id)`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_workspace ON tasks(workspace_id)`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_milestone ON tasks(milestone_id)`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_type ON tasks(task_type)`);
+      }
+
+      const agentCols = (db.prepare(`PRAGMA table_info(agents)`).all() as { name: string }[]).map(c => c.name);
+      if (agentCols.includes('is_master')) {
+        db.exec(`
+          CREATE TABLE agents_new_020 (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            role TEXT NOT NULL,
+            description TEXT,
+            status TEXT DEFAULT 'standby' CHECK (status IN ('standby', 'working', 'offline')),
+            workspace_id TEXT DEFAULT 'default' REFERENCES workspaces(id),
+            soul_md TEXT,
+            user_md TEXT,
+            agents_md TEXT,
+            model TEXT,
+            source TEXT DEFAULT 'local',
+            gateway_agent_id TEXT,
+            session_key_prefix TEXT,
+            agent_dir TEXT,
+            agent_workspace_path TEXT,
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now'))
+          )
+        `);
+
+        db.exec(`
+          INSERT INTO agents_new_020 (
+            id, name, role, description, status, workspace_id, soul_md, user_md,
+            agents_md, model, source, gateway_agent_id, session_key_prefix,
+            agent_dir, agent_workspace_path, created_at, updated_at
+          )
+          SELECT
+            id, name, role, description, status, workspace_id, soul_md, user_md,
+            agents_md, model, source, gateway_agent_id, session_key_prefix,
+            agent_dir, agent_workspace_path, created_at, updated_at
+          FROM agents
+        `);
+
+        db.exec(`UPDATE agents_new_020 SET role = 'orchestrator' WHERE id IN (SELECT id FROM agents WHERE is_master = 1)`);
+
+        db.exec(`DROP TABLE agents`);
+        db.exec(`ALTER TABLE agents_new_020 RENAME TO agents`);
+
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_agents_workspace ON agents(workspace_id)`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status)`);
+      }
+
+      const sprintCols = (db.prepare(`PRAGMA table_info(sprints)`).all() as { name: string }[]).map(c => c.name);
+      if (sprintCols.includes('milestone_id')) {
+        db.exec(`
+          CREATE TABLE sprints_new_020 (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            goal TEXT,
+            sprint_number INTEGER,
+            start_date TEXT NOT NULL,
+            end_date TEXT NOT NULL,
+            status TEXT DEFAULT 'planning' CHECK (status IN ('planning', 'active', 'completed', 'cancelled')),
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now'))
+          )
+        `);
+
+        db.exec(`
+          INSERT INTO sprints_new_020 (
+            id, workspace_id, name, goal, sprint_number, start_date, end_date, status, created_at, updated_at
+          )
+          SELECT
+            id, workspace_id, name, goal, sprint_number, start_date, end_date, status, created_at, updated_at
+          FROM sprints
+        `);
+
+        db.exec(`DROP TABLE sprints`);
+        db.exec(`ALTER TABLE sprints_new_020 RENAME TO sprints`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_sprints_workspace ON sprints(workspace_id)`);
+      }
+
+      db.exec(`DROP INDEX IF EXISTS idx_tasks_parent`);
+      db.exec(`DROP INDEX IF EXISTS idx_tasks_sprint`);
+
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_milestones_sprint ON milestones(sprint_id)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_milestone_deps_milestone ON milestone_dependencies(milestone_id)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_milestone_deps_depends ON milestone_dependencies(depends_on_milestone_id, depends_on_task_id)`);
+
+      db.exec(`
+        UPDATE workflow_templates
+        SET
+          stages = REPLACE(
+            REPLACE(stages, '"label":"Review"', '"label":"Human Verifier"'),
+            '"label": "Review"',
+            '"label": "Human Verifier"'
+          ),
+          updated_at = datetime('now')
+        WHERE
+          (stages LIKE '%"status":"review"%' OR stages LIKE '%"status": "review"%')
+          AND (stages LIKE '%"role":null%' OR stages LIKE '%"role": null%')
+          AND (stages LIKE '%"label":"Review"%' OR stages LIKE '%"label": "Review"%')
+      `);
+
+      console.log('[Migration 020] Hierarchy + agent schema restructure complete');
+    }
   }
 ];
 
