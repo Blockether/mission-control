@@ -1,7 +1,5 @@
-export const dynamic = 'force-dynamic';
-
-import { NextResponse } from 'next/server';
-import { existsSync, readFileSync, statSync } from 'fs';
+import { NextRequest, NextResponse } from 'next/server';
+import { existsSync, readFileSync, writeFileSync, statSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { getOpenClawClient } from '@/lib/openclaw/client';
@@ -211,5 +209,63 @@ export async function GET() {
       source: 'fallback',
       error: error instanceof Error ? error.message : 'Unknown error',
     }, { status: 500 });
+  }
+}
+
+/**
+ * PATCH /api/openclaw/models
+ *
+ * Update the default model in ~/.openclaw/openclaw.json
+ * Body: { defaultModel: string }
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { defaultModel } = body;
+
+    if (!defaultModel || typeof defaultModel !== 'string') {
+      return NextResponse.json(
+        { error: 'defaultModel (string) is required' },
+        { status: 400 },
+      );
+    }
+
+    const configPath = join(homedir(), '.openclaw', 'openclaw.json');
+
+    if (!existsSync(configPath)) {
+      return NextResponse.json(
+        { error: 'OpenClaw config not found at ~/.openclaw/openclaw.json' },
+        { status: 404 },
+      );
+    }
+
+    // Read current config
+    const configContent = readFileSync(configPath, 'utf-8');
+    const config = JSON.parse(configContent);
+
+    // Ensure the nested path exists
+    if (!config.agents) config.agents = {};
+    if (!config.agents.defaults) config.agents.defaults = {};
+    if (!config.agents.defaults.model) config.agents.defaults.model = {};
+
+    const previousModel = config.agents.defaults.model.primary;
+    config.agents.defaults.model.primary = defaultModel;
+
+    // Write back with same formatting
+    writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+
+    console.log(`[models] Default model changed: ${previousModel} -> ${defaultModel}`);
+
+    return NextResponse.json({
+      success: true,
+      defaultModel,
+      previousModel,
+    });
+  } catch (error) {
+    console.error('[models] Failed to update default model:', error);
+    return NextResponse.json(
+      { error: 'Failed to update default model', details: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    );
   }
 }
