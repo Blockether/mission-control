@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronRight, ChevronLeft, RefreshCw, ListTodo, Inbox, BarChart3, Activity, X } from 'lucide-react';
+import { ChevronRight, ChevronLeft, RefreshCw, ListTodo, Inbox, BarChart3, Activity, X, Crown } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import type { Agent, AgentStatus, OpenClawSession } from '@/lib/types';
 import { AgentModal } from './AgentModal';
@@ -203,7 +203,7 @@ export function AgentsSidebar({
               const isSynced = agent.source === 'synced' || agent.source === 'gateway';
 
               return (
-                <div key={agent.id} className={`w-full rounded hover:bg-mc-bg-tertiary transition-colors ${selectedAgent?.id === agent.id ? 'bg-mc-bg-tertiary' : ''}`}>
+                <div key={agent.id} className={`w-full rounded hover:bg-mc-bg-tertiary transition-colors ${selectedAgent?.id === agent.id ? 'bg-mc-bg-tertiary' : ''} ${agent.role === 'orchestrator' ? 'bg-amber-50 border border-amber-300' : ''}`}>
                   <button
                     onClick={() => {
                       setSelectedAgent(agent);
@@ -219,10 +219,10 @@ export function AgentsSidebar({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm truncate">{agent.name}</span>
-                        {!!agent.is_master && <span className="text-xs text-mc-accent-yellow">★</span>}
+                        {agent.role === 'orchestrator' && <Crown className="w-3 h-3 text-amber-500" />}
                       </div>
                       <div className="text-xs text-mc-text-secondary truncate flex items-center gap-1">
-                        {agent.role}
+                        {agent.role === 'orchestrator' ? 'Product Owner' : agent.role}
                         {isSynced && (
                           <span className="text-[10px] px-1 py-0 bg-mc-accent/20 text-mc-accent rounded" title="Synced from Gateway">
                             SYNC
@@ -376,7 +376,7 @@ export function AgentsSidebar({
                 >
                   <AgentInitials name={agent.name} size="md" />
                   {(openclawSession || isSynced) && <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-mc-bg-secondary" />}
-                  {!!agent.is_master && <span className="absolute -top-1 -right-1 text-xs text-mc-accent-yellow">★</span>}
+                  {agent.role === 'orchestrator' && <span className="absolute -top-1 -right-1 text-amber-500"><Crown className="w-3 h-3" /></span>}
                   <span
                     className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${
                       agent.status === 'working' ? 'bg-mc-accent-green' : agent.status === 'standby' ? 'bg-mc-text-secondary' : 'bg-gray-500'
@@ -391,7 +391,7 @@ export function AgentsSidebar({
           }
 
           return (
-            <div key={agent.id} className={`w-full rounded hover:bg-mc-bg-tertiary transition-colors ${selectedAgent?.id === agent.id ? 'bg-mc-bg-tertiary' : ''}`}>
+            <div key={agent.id} className={`w-full rounded hover:bg-mc-bg-tertiary transition-colors ${selectedAgent?.id === agent.id ? 'bg-mc-bg-tertiary' : ''} ${agent.role === 'orchestrator' ? 'bg-amber-50 border border-amber-300' : ''}`}>
               <button
                 onClick={() => {
                   setSelectedAgent(agent);
@@ -407,10 +407,10 @@ export function AgentsSidebar({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm truncate">{agent.name}</span>
-                    {!!agent.is_master && <span className="text-xs text-mc-accent-yellow">★</span>}
+                    {agent.role === 'orchestrator' && <Crown className="w-3 h-3 text-amber-500" />}
                   </div>
                   <div className="text-xs text-mc-text-secondary truncate flex items-center gap-1">
-                    {agent.role}
+                    {agent.role === 'orchestrator' ? 'Product Owner' : agent.role}
                     {isSynced && (
                       <span className="text-[10px] px-1 py-0 bg-mc-accent/20 text-mc-accent rounded" title="Synced from Gateway">
                         SYNC

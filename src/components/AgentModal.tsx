@@ -25,7 +25,7 @@ export function AgentModal({ agent, onClose, workspaceId, onAgentCreated }: Agen
     role: agent?.role || '',
     description: agent?.description || '',
     status: agent?.status || 'standby' as AgentStatus,
-    is_master: agent?.is_master || false,
+    // is_master removed - orchestrator role determined by backend
     soul_md: agent?.soul_md || '',
     user_md: agent?.user_md || '',
     agents_md: agent?.agents_md || '',
@@ -206,19 +206,7 @@ export function AgentModal({ agent, onClose, workspaceId, onAgentCreated }: Agen
                 </select>
               </div>
 
-              {/* Master Toggle */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="is_master"
-                  checked={form.is_master}
-                  onChange={(e) => setForm({ ...form, is_master: e.target.checked })}
-                  className="w-4 h-4"
-                />
-                <label htmlFor="is_master" className="text-sm">
-                  Master Orchestrator (can coordinate other agents)
-                </label>
-              </div>
+
 
               {/* Model Selection */}
               <div>
