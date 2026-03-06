@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Mission Control CLI wrapper — example/template
+#
+# Install:
+#   sudo cp scripts/mc.sh.example /usr/local/bin/mc
+#   sudo chmod +x /usr/local/bin/mc
+#
+# Then set environment variables (do NOT hardcode tokens here):
+#   export MC_TOKEN=<your-bearer-token>
+#   export MC_WORKSPACE=<your-workspace-uuid>
+#   export MC_URL=http://localhost:4000   # optional, this is the default
+#
+# Usage:
+#   mc status '{}'
+#   mc task_list '{"status": "in_progress"}'
+#   mc task_create '{"title": "Fix bug", "priority": "high"}'
+#
+# See scripts/mc.py for full action reference.
+
+# Set MC_URL default if not already set in environment
+: "${MC_URL:=http://localhost:4000}"
+
+exec python3 /root/repos/blockether/mission-control/scripts/mc.py "$@"
