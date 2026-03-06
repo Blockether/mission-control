@@ -7,6 +7,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { Zap, PenLine, CheckCircle2, FileText, ArrowRightLeft, Activity } from 'lucide-react';
 import type { TaskActivity } from '@/lib/types';
 import { AgentInitials } from './AgentInitials';
 
@@ -73,20 +74,21 @@ export function ActivityLog({ taskId }: ActivityLogProps) {
     };
   }, [taskId, pollForActivities]);
 
-  const getActivityIcon = (type: string) => {
+  const getActivityBadge = (type: string) => {
+    const base = 'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0';
     switch (type) {
       case 'spawned':
-        return 'SP';
+        return <div className={`${base} bg-amber-100 text-amber-600`}><Zap size={16} /></div>;
       case 'updated':
-        return 'UP';
+        return <div className={`${base} bg-blue-100 text-blue-600`}><PenLine size={16} /></div>;
       case 'completed':
-        return 'OK';
+        return <div className={`${base} bg-green-100 text-green-600`}><CheckCircle2 size={16} /></div>;
       case 'file_created':
-        return 'FL';
+        return <div className={`${base} bg-purple-100 text-purple-600`}><FileText size={16} /></div>;
       case 'status_changed':
-        return 'ST';
+        return <div className={`${base} bg-slate-100 text-slate-500`}><ArrowRightLeft size={16} /></div>;
       default:
-        return '--';
+        return <div className={`${base} bg-mc-bg-secondary text-mc-text-secondary`}><Activity size={16} /></div>;
     }
   };
 
@@ -115,9 +117,7 @@ export function ActivityLog({ taskId }: ActivityLogProps) {
           className="flex gap-3 p-3 bg-mc-bg rounded-lg border border-mc-border"
         >
           {/* Icon */}
-          <div className="text-2xl flex-shrink-0">
-            {getActivityIcon(activity.activity_type)}
-          </div>
+          {getActivityBadge(activity.activity_type)}
 
           {/* Content */}
           <div className="flex-1 min-w-0">
