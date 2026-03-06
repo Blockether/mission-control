@@ -177,10 +177,16 @@ export function TeamTab({ taskId, workspaceId }: TeamTabProps) {
           <option value="">No workflow (single agent)</option>
           {workflows.map(wf => (
             <option key={wf.id} value={wf.id}>
-              {wf.name}{wf.is_default ? ' (Default)' : ''} — {wf.description}
+              {wf.name}{wf.is_default ? ' (Default)' : ''}
             </option>
           ))}
         </select>
+
+      {currentWorkflow && (
+        <p className="mt-1.5 text-xs text-mc-text-secondary">
+          {currentWorkflow.description}
+        </p>
+      )}
       </div>
 
       {/* Workflow Stages Visualization */}

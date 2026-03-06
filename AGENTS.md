@@ -20,6 +20,12 @@
 11. **Mobile**: `flex-wrap`, text labels hidden via `hidden sm:inline`, icons-only on small screens.
 12. **Component traceability**: Every React component's root DOM element MUST have `data-component="src/path/to/File"` (relative path, no extension). This allows pasting rendered HTML and immediately knowing which source file to edit.
 
+## Modal & Dialog Guidelines
+
+13. **Modal footers**: All save/action buttons in modal tabs MUST use the same footer pattern — a `border-t` top-bordered bar with right-aligned compact buttons. Never use full-width block buttons inside scrollable content.
+14. **Modal scroll**: Tab-based modals MUST reset scroll position to top when switching tabs.
+15. **Dropdowns**: When a dropdown selection has a description, show it as helper text below the dropdown (`text-xs text-mc-text-secondary`) — never cram long descriptions into `<option>` elements.
+
 ## Verification Rules (Pre-Commit)
 
 Before every commit:
