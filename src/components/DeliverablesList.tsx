@@ -224,31 +224,6 @@ export function DeliverablesList({ taskId }: DeliverablesListProps) {
               </p>
             )}
 
-            {/* Path - clickable for previewable files */}
-            {deliverable.path && (
-              deliverable.deliverable_type === 'url' ? (
-                <a
-                  href={deliverable.path}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 p-2 bg-mc-bg-tertiary rounded text-xs text-mc-accent hover:text-mc-accent/80 font-mono break-all block hover:bg-mc-bg-tertiary/80"
-                >
-                  {deliverable.path}
-                </a>
-              ) : isPreviewable(deliverable.path) ? (
-                <button
-                  onClick={() => handlePreview(deliverable)}
-                  className="mt-2 p-2 bg-mc-bg-tertiary rounded text-xs text-mc-accent font-mono break-all block w-full text-left hover:bg-mc-bg-tertiary/80 cursor-pointer"
-                >
-                  {deliverable.path}
-                </button>
-              ) : (
-                <div className="mt-2 p-2 bg-mc-bg-tertiary rounded text-xs text-mc-text-secondary font-mono break-all">
-                  {deliverable.path}
-                </div>
-              )
-            )}
-
             {/* Metadata */}
             <div className="flex items-center gap-4 mt-2 text-xs text-mc-text-secondary">
               <span className="capitalize">{deliverable.deliverable_type}</span>

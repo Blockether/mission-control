@@ -11,7 +11,6 @@ import { ActiveSprint } from '@/components/ActiveSprint';
 import { BacklogView } from '@/components/BacklogView';
 import { ParetoView } from '@/components/ParetoView';
 import { AgentActivityDashboard } from '@/components/AgentActivityDashboard';
-import { LiveFeed } from '@/components/LiveFeed';
 import { SSEDebugPanel } from '@/components/SSEDebugPanel';
 import { GithubIssuesView } from '@/components/GithubIssuesView';
 import { TaskModal } from '@/components/TaskModal';
@@ -34,7 +33,7 @@ export default function WorkspacePage() {
   const params = useParams();
   const slug = params.slug as string;
 
-  const { setAgents, setTasks, setEvents, setIsOnline, setIsLoading, isLoading } = useMissionControl();
+  const { setAgents, setTasks, setIsOnline, setIsLoading, isLoading } = useMissionControl();
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -111,10 +110,9 @@ export default function WorkspacePage() {
       try {
         debug.api('Loading workspace data...', { workspaceId });
 
-        const [agentsRes, tasksRes, eventsRes] = await Promise.all([
+        const [agentsRes, tasksRes] = await Promise.all([
           fetch(`/api/agents?workspace_id=${workspaceId}`),
           fetch(`/api/tasks?workspace_id=${workspaceId}`),
-          fetch(`/api/events?workspace_id=${workspaceId}`),
         ]);
 
         if (agentsRes.ok) setAgents(await agentsRes.json());
@@ -123,7 +121,6 @@ export default function WorkspacePage() {
           debug.api('Loaded tasks', { count: tasksData.length });
           setTasks(tasksData);
         }
-        if (eventsRes.ok) setEvents(await eventsRes.json());
       } catch (error) {
         console.error('Failed to load data:', error);
       } finally {
@@ -150,17 +147,6 @@ export default function WorkspacePage() {
 
     loadData();
     checkOpenClaw();
-
-    const eventPoll = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/events?workspace_id=${workspaceId}&limit=20`);
-        if (res.ok) {
-          setEvents(await res.json());
-        }
-      } catch (error) {
-        console.error('Failed to poll events:', error);
-      }
-    }, 30000);
 
     const taskPoll = setInterval(async () => {
       try {
@@ -199,11 +185,10 @@ export default function WorkspacePage() {
     }, 30000);
 
     return () => {
-      clearInterval(eventPoll);
       clearInterval(connectionCheck);
       clearInterval(taskPoll);
     };
-  }, [workspace, setAgents, setTasks, setEvents, setIsOnline, setIsLoading]);
+  }, [workspace, setAgents, setTasks, setIsOnline, setIsLoading]);
 
   const renderView = () => {
     if (!workspace) return null;
@@ -266,7 +251,6 @@ export default function WorkspacePage() {
           onViewChange={handleViewChange} 
         />
         <div className="flex-1 min-w-0 overflow-hidden">{renderView()}</div>
-        <LiveFeed />
       </div>
 
       <div className="lg:hidden flex-1 overflow-hidden pb-[env(safe-area-inset-bottom)]">
