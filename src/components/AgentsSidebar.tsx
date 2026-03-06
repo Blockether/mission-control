@@ -313,7 +313,7 @@ export function AgentsSidebar({
     <aside
       data-component="src/components/AgentsSidebar"
       className={`hidden lg:flex bg-mc-bg-secondary border-r border-mc-border flex-col transition-all duration-300 ease-in-out ${
-        isMinimized ? 'w-12' : 'w-[32rem]'
+        isMinimized ? 'w-12' : 'w-96'
       }`}
     >
       <div className="p-3 border-b border-mc-border">
