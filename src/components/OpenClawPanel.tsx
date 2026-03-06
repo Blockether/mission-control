@@ -9,6 +9,7 @@ import {
   Bot,
   Star,
   AlertCircle,
+  Power,
 } from 'lucide-react';
 import type { Agent, AgentStatus } from '@/lib/types';
 
@@ -41,6 +42,8 @@ export function OpenClawPanel() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [restarting, setRestarting] = useState(false);
+  const [restartResult, setRestartResult] = useState<{ success: boolean; error?: string } | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -116,18 +119,46 @@ export function OpenClawPanel() {
           <Cpu className="w-4 h-4 text-mc-accent" />
           <span className="font-mono font-medium">OpenClaw Gateway</span>
         </div>
-        <button
-          onClick={fetchData}
-          disabled={loading}
-          className="flex items-center gap-2 px-3 min-h-11 border border-mc-border rounded text-sm hover:bg-mc-bg-tertiary disabled:opacity-50 transition-colors"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">{loading ? 'Refreshing...' : 'Refresh'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              setRestarting(true);
+              setRestartResult(null);
+              try {
+                const res = await fetch('/api/system/restart-gateway', { method: 'POST' });
+                const data = await res.json();
+                setRestartResult(data);
+                if (data.success) setTimeout(() => { setRestartResult(null); fetchData(); }, 3000);
+              } catch {
+                setRestartResult({ success: false, error: 'Request failed' });
+              } finally {
+                setRestarting(false);
+              }
+            }}
+            disabled={restarting}
+            className="flex items-center gap-2 px-3 min-h-11 border border-red-300 text-red-600 rounded text-sm hover:bg-red-50 disabled:opacity-50 transition-colors"
+          >
+            <Power className={`w-4 h-4 ${restarting ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{restarting ? 'Restarting...' : 'Restart Gateway'}</span>
+          </button>
+          <button
+            onClick={fetchData}
+            disabled={loading}
+            className="flex items-center gap-2 px-3 min-h-11 border border-mc-border rounded text-sm hover:bg-mc-bg-tertiary disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{loading ? 'Refreshing...' : 'Refresh'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {restartResult && (
+          <div className={`mb-4 p-4 rounded-lg text-sm ${restartResult.success ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+            {restartResult.success ? 'Gateway restarted successfully. Reconnecting...' : `Restart failed: ${restartResult.error}`}
+          </div>
+        )}
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
             {error}
