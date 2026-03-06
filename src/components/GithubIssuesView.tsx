@@ -75,10 +75,15 @@ export function GithubIssuesView({ workspaceId, workspace, onCreateTask }: Githu
   const lastSyncedAt = issues.length > 0 ? issues[0].synced_at : null;
   const hasGithubRepo = workspace.github_repo && workspace.github_repo.trim() !== '';
 
-  const parseLabels = (labelsJson: string): string[] => {
+  const parseLabels = (labelsJson: string): { name: string; color: string }[] => {
     try {
       const parsed = JSON.parse(labelsJson);
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map((l) =>
+        typeof l === 'string'
+          ? { name: l, color: '' }
+          : { name: l?.name ?? '', color: l?.color ?? '' }
+      );
     } catch {
       return [];
     }
@@ -238,9 +243,14 @@ export function GithubIssuesView({ workspaceId, workspace, onCreateTask }: Githu
                           {labels.map((label, idx) => (
                             <span
                               key={idx}
-                              className="text-xs px-1.5 py-0.5 rounded bg-mc-bg-tertiary text-mc-text-secondary"
+                              className="text-xs px-1.5 py-0.5 rounded font-medium"
+                              style={label.color ? {
+                                backgroundColor: `#${label.color}33`,
+                                color: `#${label.color}`,
+                                border: `1px solid #${label.color}66`,
+                              } : { backgroundColor: 'var(--mc-bg-tertiary)', color: 'var(--mc-text-secondary)' }}
                             >
-                              {label}
+                              {label.name}
                             </span>
                           ))}
                         </div>
