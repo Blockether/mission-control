@@ -139,7 +139,6 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [sprints, setSprints] = useState<Sprint[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
@@ -149,7 +148,6 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
   const [resources, setResources] = useState<TaskResource[]>([]);
   const [acceptanceCriteria, setAcceptanceCriteria] = useState<TaskAcceptanceCriteria[]>([]);
   const [taskTags, setTaskTags] = useState<Tag[]>([]);
-  const [subtasks, setSubtasks] = useState<Task[]>([]);
 
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
@@ -199,14 +197,12 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
 
     const loadMetadata = async () => {
       try {
-        const [sprintsRes, milestonesRes, agentsRes, tagsRes] = await Promise.all([
-          fetch(`/api/sprints?workspace_id=${workspaceId}`),
+        const [milestonesRes, agentsRes, tagsRes] = await Promise.all([
           fetch(`/api/milestones?workspace_id=${workspaceId}`),
           fetch(`/api/agents?workspace_id=${workspaceId}`),
           fetch(`/api/tags?workspace_id=${workspaceId}`),
         ]);
 
-        if (sprintsRes.ok) setSprints(await sprintsRes.json());
         if (milestonesRes.ok) setMilestones(await milestonesRes.json());
         if (agentsRes.ok) setAgents(await agentsRes.json());
         if (tagsRes.ok) setAvailableTags(await tagsRes.json());
@@ -217,13 +213,12 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
 
     const loadSubResources = async () => {
       try {
-        const [commentsRes, blockersRes, resourcesRes, criteriaRes, tagsRes, subtasksRes] = await Promise.all([
+        const [commentsRes, blockersRes, resourcesRes, criteriaRes, tagsRes] = await Promise.all([
           fetch(`/api/tasks/${taskId}/comments`),
           fetch(`/api/tasks/${taskId}/blockers`),
           fetch(`/api/tasks/${taskId}/resources`),
           fetch(`/api/tasks/${taskId}/acceptance-criteria`),
           fetch(`/api/tasks/${taskId}/tags`),
-          fetch(`/api/tasks?parent_task_id=${taskId}`),
         ]);
 
         if (commentsRes.ok) setComments(await commentsRes.json());
@@ -231,7 +226,6 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
         if (resourcesRes.ok) setResources(await resourcesRes.json());
         if (criteriaRes.ok) setAcceptanceCriteria(await criteriaRes.json());
         if (tagsRes.ok) setTaskTags(await tagsRes.json());
-        if (subtasksRes.ok) setSubtasks(await subtasksRes.json());
       } catch (err) {
         console.error('Failed to load sub-resources:', err);
       }
@@ -284,9 +278,6 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
     await updateTask({ impact });
   };
 
-  const handleSprintChange = async (sprintId: string) => {
-    await updateTask({ sprint_id: sprintId || undefined });
-  };
 
   const handleMilestoneChange = async (milestoneId: string) => {
     await updateTask({ milestone_id: milestoneId || undefined });
@@ -627,21 +618,8 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 )}
               </CollapsibleSection>
 
-              <CollapsibleSection title="Sprint & Milestone">
+              <CollapsibleSection title="Milestone">
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-mc-text-secondary w-20">Sprint</span>
-                    <select
-                      value={task.sprint_id || ''}
-                      onChange={(e) => handleSprintChange(e.target.value)}
-                      className="flex-1 min-h-11 bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
-                    >
-                      <option value="">No sprint</option>
-                      {sprints.map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                  </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-mc-text-secondary w-20">Milestone</span>
                     <select
@@ -936,28 +914,6 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 </div>
               </CollapsibleSection>
 
-              <CollapsibleSection title="Subtasks" badge={subtasks.length} defaultOpen={subtasks.length > 0}>
-                {subtasks.length > 0 ? (
-                  <div className="space-y-2">
-                    {subtasks.map(subtask => (
-                      <div
-                        key={subtask.id}
-                        className="flex items-center gap-2 p-2 bg-mc-bg rounded border border-mc-border"
-                      >
-                        <span className={`px-2 py-0.5 rounded text-xs uppercase ${TASK_TYPE_COLORS[subtask.task_type]}`}>
-                          {subtask.task_type}
-                        </span>
-                        <span className="flex-1 text-sm truncate">{subtask.title}</span>
-                        <span className={`px-2 py-0.5 rounded text-xs uppercase ${STATUS_COLORS[subtask.status]}`}>
-                          {subtask.status.replace('_', ' ')}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-mc-text-secondary italic">No subtasks</p>
-                )}
-              </CollapsibleSection>
             </div>
           ) : null}
         </div>

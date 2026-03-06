@@ -92,9 +92,6 @@ export function TaskModal({ task, onClose, workspaceId, defaultSprintId }: TaskM
         workspace_id: workspaceId || task?.workspace_id || 'default',
       };
 
-      if (!task && defaultSprintId) {
-        payload.sprint_id = defaultSprintId;
-      }
 
       const res = await fetch(url, {
         method,
