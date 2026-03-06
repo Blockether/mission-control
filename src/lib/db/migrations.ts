@@ -845,7 +845,7 @@ const migrations: Migration[] = [
     id: '020',
     name: 'hierarchy_agent_schema_restructure',
     up: (db) => {
-      console.log('[Migration 020] Restructuring hierarchy + agent schema...');
+      console.warn('[Migration 020] Restructuring hierarchy + agent schema...');
 
       const milestoneCols = (db.prepare(`PRAGMA table_info(milestones)`).all() as { name: string }[]).map(c => c.name);
       if (!milestoneCols.includes('sprint_id')) {
@@ -1028,7 +1028,7 @@ const migrations: Migration[] = [
           AND (stages LIKE '%"label":"Review"%' OR stages LIKE '%"label": "Review"%')
       `);
 
-      console.log('[Migration 020] Hierarchy + agent schema restructure complete');
+      console.warn('[Migration 020] Hierarchy + agent schema restructure complete');
     }
   }
 ];

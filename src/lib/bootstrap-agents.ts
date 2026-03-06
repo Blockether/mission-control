@@ -230,7 +230,7 @@ export function bootstrapCoreAgentsRaw(
   for (const agent of CORE_AGENTS) {
     const existing = findByRole.get(workspaceId, agent.role) as { id: string } | undefined;
     if (existing) {
-      console.log(`[Bootstrap] ${agent.role} already exists for workspace ${workspaceId} — skipping`);
+      console.warn(`[Bootstrap] ${agent.role} already exists for workspace ${workspaceId} — skipping`);
       continue;
     }
 
@@ -247,7 +247,7 @@ export function bootstrapCoreAgentsRaw(
       now,
       now,
     );
-    console.log(`[Bootstrap] Created ${agent.name} (${agent.role}) for workspace ${workspaceId}`);
+    console.warn(`[Bootstrap] Created ${agent.name} (${agent.role}) for workspace ${workspaceId}`);
   }
 }
 
@@ -272,5 +272,5 @@ export function cloneWorkflowTemplates(db: Database.Database, targetWorkspaceId:
     insert.run(newId, targetWorkspaceId, tpl.name, tpl.description, tpl.stages, tpl.fail_targets, tpl.is_default, now, now);
   }
 
-  console.log(`[Bootstrap] Cloned ${templates.length} workflow template(s) to workspace ${targetWorkspaceId}`);
+  console.warn(`[Bootstrap] Cloned ${templates.length} workflow template(s) to workspace ${targetWorkspaceId}`);
 }

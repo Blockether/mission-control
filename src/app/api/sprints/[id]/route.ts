@@ -96,7 +96,7 @@ export async function PATCH(
     db.prepare(`UPDATE sprints SET ${updates.join(', ')} WHERE id = ?`).run(...values);
 
     if (data.status === 'completed') {
-      db.prepare('UPDATE tasks SET sprint_id = NULL, updated_at = ? WHERE sprint_id = ? AND status != ?').run(now, id, 'done');
+      db.prepare('UPDATE milestones SET sprint_id = NULL, updated_at = ? WHERE sprint_id = ?').run(now, id);
     }
 
     const sprint = db.prepare('SELECT * FROM sprints WHERE id = ?').get(id) as Sprint | undefined;
@@ -121,7 +121,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Sprint not found' }, { status: 404 });
     }
 
-    const taskCount = db.prepare('SELECT COUNT(*) as count FROM tasks WHERE sprint_id = ?').get(id) as { count: number };
+    const taskCount = db.prepare('SELECT COUNT(*) as count FROM tasks t JOIN milestones m ON t.milestone_id = m.id WHERE m.sprint_id = ?').get(id) as { count: number };
     if (taskCount.count > 0) {
       return NextResponse.json(
         { error: 'Cannot delete sprint with related tasks', taskCount: taskCount.count },
