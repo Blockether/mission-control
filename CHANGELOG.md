@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.0] - 2026-03-06
+
+### Added
+- Milestone-first hierarchy: Sprint -> Milestone -> Task (strict hierarchy)
+- Milestone priority field (low/normal/high/urgent)
+- Milestone sprint_id FK (milestones belong to sprints)
+- Milestone dependencies table (informational, not blocking in v1)
+- Story points computed at read time via SUM(task.effort)
+- Single Orchestrator/PO per workspace enforcement (409 on duplicate)
+- Orchestrator demotion blocked via PATCH (400 - must delete + recreate)
+- Orchestrator guard in workflow engine (not auto-assigned to stages)
+- Human Verifier label on review workflow stage
+- Assign to milestone action on backlog task cards
+- Milestone-first view in ActiveSprint (list and board modes)
+- Milestone swimlanes in Kanban board
+- Orchestrator Crown icon and Product Owner subtitle in AgentsSidebar
+
+### Removed
+- task.sprint_id (tasks get sprint context via milestone.sprint_id)
+- task.parent_task_id (subtasks removed)
+- agent.is_master boolean (replaced by role = 'orchestrator')
+
+### Breaking Changes
+- task.sprint_id removed from API responses and request bodies
+- task.parent_task_id removed from API responses and request bodies
+- agent.is_master removed from API responses and request bodies
+- Backlog definition changed: milestone_id IS NULL (was sprint_id IS NULL)
+
+---
+
 ## [1.4.0] - 2026-03-03
 
 ### Added

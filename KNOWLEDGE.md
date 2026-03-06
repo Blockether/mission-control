@@ -1,6 +1,6 @@
 # KNOWLEDGE.md -- Mission Control
 
-Last updated: 2026-03-05
+Last updated: 2026-03-06
 
 ---
 
@@ -27,16 +27,16 @@ Single-page dashboard per workspace. No route navigations between views.
 
 ```
 /workspace/[slug]/page.tsx
-  Header (logo, workspace, stats, online status, clock, settings — NO view nav)
+  Header (logo, workspace, stats, online status, clock, settings -- NO view nav)
   Desktop: AgentsSidebar(views + agents, collapsed by default) | {view content} | LiveFeed(collapsed by default)
     view='sprint'   -> ActiveSprint (List/Board toggle)
-    view='backlog'  -> BacklogView (tasks with no sprint_id)
+    view='backlog'  -> BacklogView (tasks with no milestone_id)
     view='pareto'   -> ParetoView (effort/impact matrix)
     view='activity' -> AgentActivityDashboard (embedded)
   Mobile: hamburger in Header opens AgentsSidebar as slide-over overlay. Single content panel, no duplicate tabs.
 ```
 
-**Navigation lives in AgentsSidebar only** — not in the Header. The sidebar has two sections: Views (Sprint/Backlog/Pareto/Activity) at top, Agents list below. On desktop it collapses to icons. On mobile it's a slide-over overlay triggered by hamburger menu.
+**Navigation lives in AgentsSidebar only** -- not in the Header. The sidebar has two sections: Views (Sprint/Backlog/Pareto/Activity) at top, Agents list below. On desktop it collapses to icons. On mobile it's a slide-over overlay triggered by hamburger menu.
 
 View state is React state + URL query param (`?view=backlog`). Default is `sprint`. Switching calls `window.history.replaceState()` -- no page reload.
 
@@ -63,9 +63,25 @@ Also: `pending_dispatch` (transient, pre-dispatch state).
 
 **Fail-loopback**: Testing or verification failure returns task to `in_progress` and re-dispatches the builder.
 
-**Task fields**: title, description, status, priority (low/normal/high/urgent), task_type (bug/feature/chore/documentation/research), effort (1-5), impact (1-5), assigned_agent_id, sprint_id, milestone_id, parent_task_id, workflow_template_id, due_date, tags.
+**Task fields**: title, description, status, priority (low/normal/high/urgent), task_type (bug/feature/chore/documentation/research), effort (1-5), impact (1-5), assigned_agent_id, milestone_id, workflow_template_id, due_date, tags.
+
+Tasks get sprint context via `milestone.sprint_id`. There is no direct `sprint_id` on tasks.
 
 **Task sub-resources**: comments, blockers (with blocked_by_task_id), resources (links/docs/designs), acceptance criteria (with is_met flag), activities (audit log), deliverables (file/url/artifact), sub-agent sessions.
+
+---
+
+## Hierarchy
+
+The workspace hierarchy is strict:
+
+```
+Workspace -> Sprint -> Milestone -> Task
+```
+
+Sprints contain milestones. Milestones contain tasks. A task belongs to a milestone; a milestone optionally belongs to a sprint. Tasks do not belong directly to sprints.
+
+**Backlog**: tasks where `milestone_id IS NULL` and status != `done`.
 
 ---
 
@@ -79,18 +95,24 @@ Auto-named `SPRINT-N` per workspace (auto-incremented `sprint_number`). Users ca
 
 **Constraints**:
 - Only one sprint can be `active` per workspace at a time.
-- When a sprint is completed, all non-done tasks are unassigned from the sprint.
-- Cannot delete a sprint that has tasks.
+- When a sprint is completed, all non-done tasks are unassigned from the sprint (via their milestones).
+- Cannot delete a sprint that has milestones.
 
-**Kanban board** (ActiveSprint): Sprint-scoped. Only shows tasks where `sprint_id` matches the selected sprint. Two view modes: List (milestone-grouped) and Board (drag-and-drop columns for all 8 statuses).
+**Kanban board** (ActiveSprint): Sprint-scoped. Shows tasks grouped by milestone, where the milestone belongs to the selected sprint. Two view modes: List (milestone-grouped) and Board (drag-and-drop columns for all 8 statuses, with milestone swimlanes).
 
 ---
 
 ## Milestones
 
-Workspace-level task groups. **Independent of sprints** -- a task can belong to a sprint, a milestone, both, or neither.
+Milestones are the primary grouping unit for tasks. Each milestone optionally belongs to a sprint.
 
-**Fields**: workspace_id, name, description, due_date, status (open/closed), coordinator_agent_id.
+**Fields**: workspace_id, name, description, due_date, status (open/closed), coordinator_agent_id, sprint_id, priority.
+
+**sprint_id**: FK to sprints (nullable). A milestone can exist without a sprint (it will appear in the backlog view).
+
+**priority**: `'low' | 'normal' | 'high' | 'urgent'`. Defaults to `'normal'`.
+
+**story_points**: Computed at read time via `SUM(task.effort)` across all tasks in the milestone. Never stored in the database.
 
 **Coordinator agent**: Optional. Informational only -- displayed in the UI alongside the milestone name and progress bar. No automated notifications or dispatch tied to the coordinator.
 
@@ -98,11 +120,23 @@ Workspace-level task groups. **Independent of sprints** -- a task can belong to 
 
 Cannot delete a milestone that has tasks.
 
+### Milestone Dependencies
+
+The `milestone_dependencies` table tracks ordering relationships between milestones.
+
+**Fields**: id, milestone_id, depends_on_milestone_id (nullable), depends_on_task_id (nullable), dependency_type.
+
+**dependency_type**: `'finish_to_start' | 'blocks'`.
+
+**Constraint**: at least one of `depends_on_milestone_id` or `depends_on_task_id` must be non-null.
+
+**v1 behavior**: Dependencies are informational only. No blocking behavior is enforced at the API or workflow level. They are displayed in the UI for planning purposes.
+
 ---
 
 ## Backlog
 
-Backlog = tasks with `sprint_id IS NULL` and status != `done`. The BacklogView shows these tasks in a sortable table with filters for priority, type, and tags.
+Backlog = tasks with `milestone_id IS NULL` and status != `done`. The BacklogView shows these tasks in a sortable table with filters for priority, type, and tags. Tasks can be assigned to a milestone directly from the backlog card.
 
 ---
 
@@ -126,14 +160,15 @@ Three workflow templates: Simple, Standard, Strict.
 |----------|----------|---------|
 | Simple | Builder -> Done | No |
 | Standard | Builder -> Tester -> Reviewer -> Done | No |
-| Strict | Builder -> Tester -> Review (queue) -> Reviewer (verification) -> Done | Yes |
+| Strict | Builder -> Tester -> Human Verifier (queue) -> Reviewer (verification) -> Done | Yes |
 
-The Strict template is the default. Review is a queue stage (role=null, no dispatch). Verification is active QC by the `reviewer` role.
+The Strict template is the default. The `review` stage is labeled "Human Verifier" -- it is a queue stage (role=null, no dispatch). Verification is active QC by the `reviewer` role.
 
 **Workflow engine** (`src/lib/workflow-engine.ts`):
 - `handleStageTransition()` -- Triggered on status changes to testing, review, or verification. Looks up role agent from `task_roles` table, assigns, dispatches.
 - If no agent for a role: sets `planning_dispatch_error` on the task (shown as red banner on task card).
 - Fail-loopback: `POST /api/tasks/{id}/fail` routes task back to `in_progress` and re-dispatches builder.
+- **Orchestrator guard**: `populateTaskRolesFromAgents()` skips agents with `role = 'orchestrator'`. Orchestrators are not auto-assigned to workflow stages.
 
 New workspaces clone workflow templates from the `default` workspace.
 
@@ -145,11 +180,23 @@ New workspaces clone workflow templates from the `default` workspace.
 
 **Global visibility**: Synced agents have `workspace_id='default'`. Agent queries return both workspace-local agents AND all synced agents (`WHERE workspace_id = ? OR source = 'synced'`).
 
-**Agent fields**: name, role, description, status (standby/working/offline), is_master, model, source (local/gateway/synced), gateway_agent_id, session_key_prefix, agent_dir, agent_workspace_path, soul_md, user_md, agents_md.
+**Agent fields**: name, role, description, status (standby/working/offline), model, source (local/gateway/synced), gateway_agent_id, session_key_prefix, agent_dir, agent_workspace_path, soul_md, user_md, agents_md.
 
 **Prompts stored in files**: soul_md, user_md, agents_md are read from OpenClaw agent workspace directories on disk. Double binding -- files are the source of truth, DB reflects them.
 
 **Manual sync**: `POST /api/agents/sync` triggers `syncAgentsWithRpcCheck()` (attempts RPC to gateway, falls back to config-only).
+
+### Orchestrator Role
+
+One agent per workspace may have `role = 'orchestrator'`. This is the Product Owner / project manager role.
+
+**Single-per-workspace constraint**: Creating a second orchestrator in the same workspace returns `409 Conflict`. Enforced at the API level.
+
+**Demotion blocked**: `PATCH /api/agents/{id}` cannot change an orchestrator's role. Returns `400 Bad Request`. To change the orchestrator, delete the agent and recreate with a different role.
+
+**Not a worker**: Orchestrators are excluded from workflow stage auto-assignment. They manage the project but do not execute tasks.
+
+**UI**: Orchestrator agents display a Crown icon and "Product Owner" subtitle in AgentsSidebar.
 
 ---
 
@@ -174,9 +221,9 @@ Fallback: Task polling every 60s, event polling every 30s.
 ### Tasks
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| GET | `/api/tasks` | List tasks (filter: workspace_id, status, sprint_id, milestone_id, backlog=true) |
+| GET | `/api/tasks` | List tasks (filter: workspace_id, status, milestone_id, backlog=true) |
 | POST | `/api/tasks` | Create task |
-| GET | `/api/tasks/{id}` | Get task with agent joins, subtasks, tags, comments, blockers, resources, acceptance criteria |
+| GET | `/api/tasks/{id}` | Get task with agent joins, tags, comments, blockers, resources, acceptance criteria |
 | PATCH | `/api/tasks/{id}` | Update task (triggers workflow engine on status changes) |
 | DELETE | `/api/tasks/{id}` | Delete task |
 | POST | `/api/tasks/{id}/dispatch` | Dispatch to agent via OpenClaw |
@@ -198,7 +245,7 @@ Fallback: Task polling every 60s, event polling every 30s.
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
 | GET | `/api/agents` | List agents (triggers ensureSynced) |
-| GET/PATCH/DELETE | `/api/agents/{id}` | Agent CRUD (PATCH writes back to OpenClaw config) |
+| GET/PATCH/DELETE | `/api/agents/{id}` | Agent CRUD (PATCH writes back to OpenClaw config; cannot demote orchestrator) |
 | POST | `/api/agents/sync` | Manual sync from gateway config |
 
 ### Workspaces
@@ -226,14 +273,15 @@ Fallback: Task polling every 60s, event polling every 30s.
 
 ## Database Schema
 
-19 migrations (001-019), auto-run on DB connection in `src/lib/db/index.ts`. Schema creation (`schema.ts`) only runs for fresh databases.
+20 migrations (001-020), auto-run on DB connection in `src/lib/db/index.ts`. Schema creation (`schema.ts`) only runs for fresh databases.
 
 ### Core Tables
 - **workspaces** -- slug, name, description, icon, github_repo, owner_email, coordinator_email, logo_url
-- **agents** -- name, role, status, is_master, model, source, gateway_agent_id, session_key_prefix, agent_dir, agent_workspace_path, soul_md, user_md, agents_md
-- **tasks** -- title, description, status, priority, task_type, effort, impact, assigned_agent_id, sprint_id, milestone_id, parent_task_id, workflow_template_id, due_date, planning fields
+- **agents** -- name, role, status, model, source, gateway_agent_id, session_key_prefix, agent_dir, agent_workspace_path, soul_md, user_md, agents_md. No `is_master` column.
+- **tasks** -- title, description, status, priority, task_type, effort, impact, assigned_agent_id, milestone_id, workflow_template_id, due_date, planning fields. No `sprint_id`. No `parent_task_id`.
 - **sprints** -- workspace_id, name, goal, sprint_number, start_date, end_date, status
-- **milestones** -- workspace_id, name, description, due_date, status, coordinator_agent_id
+- **milestones** -- workspace_id, name, description, due_date, status, coordinator_agent_id, sprint_id (FK nullable), priority ('low'|'normal'|'high'|'urgent')
+- **milestone_dependencies** -- id, milestone_id, depends_on_milestone_id (nullable), depends_on_task_id (nullable), dependency_type ('finish_to_start'|'blocks')
 - **tags** / **task_tags** -- workspace-scoped tags, many-to-many with tasks
 
 ### Task Sub-Resource Tables
@@ -311,11 +359,14 @@ Agents without direct filesystem access use upload/download endpoints:
 1. **SSE over WebSocket**: Simpler, works with Next.js App Router natively, sufficient for server-to-client updates.
 2. **SQLite over Postgres**: Single-file DB, zero config, WAL mode for concurrent reads. Sufficient for single-server deployment.
 3. **Single-page dashboard**: All views render in same page via state switching. No route navigations between views -- prevents layout jumps.
-4. **Sprints and milestones are independent**: A task can belong to a sprint, a milestone, both, or neither. They are not hierarchically related.
+4. **Milestone-first hierarchy**: Tasks belong to milestones; milestones belong to sprints. The hierarchy is `Workspace -> Sprint -> Milestone -> Task`. Tasks do not have a direct sprint relationship. Backlog is defined as `milestone_id IS NULL`.
 5. **Agent sync from gateway config**: Agents defined in OpenClaw config files, auto-synced on startup. Prompts stored in files (not DB). Synced agents appear in all workspaces.
 6. **Migrations auto-run on DB connection**: Schema creation only for fresh databases. `legacy_alter_table = ON` during migrations to prevent FK rewriting bug.
 7. **Component traceability**: Every React component's root DOM element has `data-component="src/path/to/File"` (relative path, no extension). Paste rendered HTML and immediately identify which source file to edit.
 8. **LiveFeed is workspace-scoped**: Events API filters by `workspace_id` via task or agent ownership. System events (no task/agent) appear in all workspaces. AgentActivityDashboard is the global cross-workspace activity view.
+9. **Single orchestrator per workspace**: Only one agent with `role = 'orchestrator'` is allowed per workspace. Enforced at the API level (409 on duplicate). Orchestrators cannot be demoted via PATCH (400) -- delete and recreate to change. Orchestrators are excluded from workflow stage auto-assignment.
+10. **Story points computed, not stored**: `story_points` on a milestone is computed at read time via `SUM(task.effort)`. It is never persisted in the database.
+11. **Milestone dependencies are informational in v1**: The `milestone_dependencies` table exists and is queryable, but no blocking behavior is enforced. Dependencies are for planning visibility only.
 
 ---
 
