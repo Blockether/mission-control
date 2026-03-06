@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  Settings,
   ChevronLeft,
   LayoutGrid,
   Folder,
@@ -28,7 +26,6 @@ interface HeaderProps {
 }
 
 export function Header({ workspace, isPortrait = true, onMenuToggle, sidebarOpen }: HeaderProps) {
-  const router = useRouter();
   const { agents, tasks, isOnline } = useMissionControl();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeSubAgents, setActiveSubAgents] = useState(0);
@@ -168,9 +165,6 @@ export function Header({ workspace, isPortrait = true, onMenuToggle, sidebarOpen
                   isOnline ? "bg-mc-accent-green animate-pulse" : "bg-mc-accent-red"
                 }`}
               />
-              <button onClick={() => router.push('/settings')} className="min-h-11 min-w-11 p-2 hover:bg-mc-bg-tertiary rounded text-mc-text-secondary shrink-0" title="Settings">
-                <Settings className="w-5 h-5" />
-              </button>
             </div>
           </div>
 
@@ -249,9 +243,6 @@ export function Header({ workspace, isPortrait = true, onMenuToggle, sidebarOpen
                 isOnline ? "bg-mc-accent-green animate-pulse" : "bg-mc-accent-red"
               }`}
             />
-            <button onClick={() => router.push('/settings')} className="min-h-11 min-w-11 p-2 hover:bg-mc-bg-tertiary rounded text-mc-text-secondary" title="Settings">
-              <Settings className="w-5 h-5" />
-            </button>
           </div>
         </>
       )}
