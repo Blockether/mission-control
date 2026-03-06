@@ -269,6 +269,10 @@ Fallback: Task polling every 60s, event polling every 30s.
 | GET | `/api/files/download` | Download file |
 | POST | `/api/webhooks/agent-completion` | HMAC-verified agent completion webhook |
 | GET | `/api/demo` | Demo mode status flag |
+| GET | `/api/system/info` | Process memory, Node version, system memory, service statuses |
+| POST | `/api/system/validate` | Run validation checks (env, DB, services, HTTP) — returns JSON |
+| GET | `/api/daemon/stats` | Latest daemon stats snapshot (pushed by daemon every 30s) |
+| POST | `/api/daemon/stats` | Daemon pushes its in-memory stats to MC |
 
 ---
 
@@ -519,3 +523,26 @@ Real-time agent session logs from OpenClaw Gateway, polled and stored by the dae
 **SSE Event:** `agent_log_added` — payload contains `{count, session_id, agent_id, agent_name, workspace_id}`.
 
 **Retention:** Logs older than 30 days are automatically purged by the daemon. Manual cleanup available via `DELETE /api/logs?days=N`.
+
+### System Dashboard
+
+The homepage has three tabs: **Workspaces** (existing), **System** (new), and **OpenClaw** (new).
+
+**System tab** shows 4 cards:
+- **Process Info** — Node.js version, platform, hostname, web process memory (RSS, heap), system memory usage bar, web/daemon service status dots.
+- **Daemon Status** — Uptime, PID, memory, module table (name, interval, last tick), counters (dispatched, heartbeats, stale recovered, events routed, logs stored/cleaned). Shows stale warning if last report is >2min old.
+- **Scheduled Jobs** — List of registered cron jobs from the daemon scheduler (id, name, cron, enabled, last run).
+- **Config Validation** — "Run Validation" button that POSTs to `/api/system/validate` and displays pass/fail/warn results for each check (env file, env vars, database, web service, daemon service, HTTP endpoint).
+
+**OpenClaw tab** shows 3 cards:
+- **Gateway Status** — Connection status (connected/disconnected), masked gateway URL (tokens replaced with `***`), active session count.
+- **Agent Occupation** — Working/standby/offline counts with stacked bar visualization, agent list with name, role, status dot, model.
+- **Available Models** — Model list from gateway with default model badge, source indicator (remote/local/fallback).
+
+Both System and OpenClaw tabs auto-refresh every 30 seconds. Validation only runs on button click.
+
+### Daemon Stats Reporter
+
+New daemon module (`src/daemon/reporter.ts`): pushes the daemon's in-memory `DaemonStats` object to MC via `POST /api/daemon/stats` every 30 seconds. MC stores the latest snapshot in a `globalThis` variable (in-memory, lost on MC restart but daemon re-pushes within one interval). Payload includes all DaemonStats counters, process memory, PID, module intervals with last-tick timestamps, and registered scheduled jobs.
+
+The scheduler now exports `getRegisteredJobs()` for the reporter to include job metadata in its stats push.

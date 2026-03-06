@@ -27,6 +27,16 @@ export function registerJob(job: ScheduledJob): void {
   log.info(`Registered job: ${job.name} (${job.id}) cron=${job.cron} enabled=${job.enabled}`);
 }
 
+export function getRegisteredJobs(): { id: string; name: string; cron: string; enabled: boolean; last_run?: string }[] {
+  return registry.map(job => ({
+    id: job.id,
+    name: job.name,
+    cron: job.cron,
+    enabled: job.enabled,
+    last_run: lastRun.has(job.id) ? new Date(lastRun.get(job.id)!).toISOString() : undefined,
+  }));
+}
+
 export function startScheduler(config: DaemonConfig, stats: DaemonStats): () => void {
   async function tick() {
     stats.lastSchedulerTick = new Date().toISOString();

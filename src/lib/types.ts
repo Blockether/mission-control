@@ -505,7 +505,8 @@ export type SSEEventType =
   | 'agent_spawned'
   | 'agent_completed'
   | 'github_issues_synced'
-  | 'agent_log_added';
+  | 'agent_log_added'
+  | 'daemon_stats_updated';
 
 export interface SSEEvent {
   type: SSEEventType;
@@ -520,4 +521,86 @@ export interface SSEEvent {
   } | {
     workspace_id: string;  // For github_issues_synced events
   };
+}
+
+
+// ── System & Daemon types ────────────────────────────────────────────
+
+export interface ValidationCheck {
+  name: string;
+  status: 'pass' | 'fail' | 'warn';
+  message: string;
+  details?: string;
+}
+
+export interface ValidationResult {
+  passed: boolean;
+  checks: ValidationCheck[];
+  errors: number;
+  warnings: number;
+  ran_at: string;
+}
+
+export interface SystemInfo {
+  node_version: string;
+  platform: string;
+  arch: string;
+  hostname: string;
+  uptime_seconds: number;
+  memory: {
+    rss_mb: number;
+    heap_total_mb: number;
+    heap_used_mb: number;
+    external_mb: number;
+  };
+  system_memory: {
+    total_mb: number;
+    free_mb: number;
+    used_percent: number;
+  };
+  services: {
+    web: 'active' | 'inactive' | 'unknown';
+    daemon: 'active' | 'inactive' | 'unknown';
+  };
+}
+
+export interface DaemonJobInfo {
+  id: string;
+  name: string;
+  cron: string;
+  enabled: boolean;
+  last_run?: string;
+}
+
+export interface DaemonModuleInfo {
+  name: string;
+  interval_ms: number;
+  last_tick?: string;
+}
+
+export interface DaemonStatsSnapshot {
+  // Timing
+  started_at: string;
+  reported_at: string;
+  uptime_seconds: number;
+  // Module ticks
+  last_heartbeat_tick?: string;
+  last_dispatch_tick?: string;
+  last_scheduler_tick?: string;
+  last_log_poll_tick?: string;
+  // Counters
+  dispatched_count: number;
+  heartbeat_count: number;
+  stale_recovered_count: number;
+  scheduled_run_count: number;
+  scheduled_failure_count: number;
+  routed_event_count: number;
+  log_entries_stored: number;
+  log_entries_cleaned: number;
+  // Process
+  memory_mb: number;
+  pid: number;
+  // Modules & jobs
+  modules: DaemonModuleInfo[];
+  jobs: DaemonJobInfo[];
 }

@@ -6,6 +6,7 @@ import { startScheduler } from './scheduler';
 import { startHealthCheck } from './health';
 import { startRouter } from './router';
 import { startLogPoller } from './logs';
+import { startReporter } from './reporter';
 import type { DaemonStats } from './types';
 
 const log = createLogger('daemon');
@@ -49,10 +50,12 @@ async function main() {
   const stopScheduler = startScheduler(config, stats);
   const stopRouter = startRouter(config, stats);
   const stopLogPoller = startLogPoller(config, stats);
+  const stopReporter = startReporter(config, stats);
 
   // Clean shutdown
   const shutdown = () => {
     log.info('Shutting down...');
+    stopReporter();
     stopLogPoller();
     stopRouter();
     stopScheduler();
