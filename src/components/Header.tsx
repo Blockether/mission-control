@@ -93,7 +93,7 @@ export function Header({ workspace, isPortrait = true, onMenuToggle, sidebarOpen
   const portraitWorkspaceHeader = !!workspace && isPortrait;
 
   const workspaceSwitcherDropdown = showWorkspaceSwitcher && (
-    <div className="absolute top-full left-0 mt-1 w-52 sm:w-64 bg-mc-bg-secondary border border-mc-border rounded-lg shadow-lg z-50 py-1 max-h-64 overflow-y-auto">
+    <div className="absolute top-full left-0 mt-1 w-44 sm:w-64 bg-mc-bg-secondary border border-mc-border rounded-lg shadow-lg z-50 py-1 max-h-64 overflow-y-auto">
       <Link
         href="/"
         onClick={() => setShowWorkspaceSwitcher(false)}
@@ -162,17 +162,12 @@ export function Header({ workspace, isPortrait = true, onMenuToggle, sidebarOpen
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <div
-                className={`flex items-center gap-2 px-3 min-h-11 rounded border text-xs font-medium ${
-                  isOnline
-                    ? 'bg-mc-accent-green/20 border-mc-accent-green text-mc-accent-green'
-                    : 'bg-mc-accent-red/20 border-mc-accent-red text-mc-accent-red'
+              <span
+                title={isOnline ? "System Online" : "System Offline"}
+                className={`w-3 h-3 rounded-full shrink-0 cursor-default ${
+                  isOnline ? "bg-mc-accent-green animate-pulse" : "bg-mc-accent-red"
                 }`}
-              >
-                <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-mc-accent-green animate-pulse' : 'bg-mc-accent-red'}`} />
-                {isOnline ? 'ONLINE' : 'OFFLINE'}
-              </div>
-
+              />
               <button onClick={() => router.push('/settings')} className="min-h-11 min-w-11 p-2 hover:bg-mc-bg-tertiary rounded text-mc-text-secondary shrink-0" title="Settings">
                 <Settings className="w-5 h-5" />
               </button>
@@ -248,16 +243,12 @@ export function Header({ workspace, isPortrait = true, onMenuToggle, sidebarOpen
 
           <div className="flex items-center gap-2 md:gap-4">
             <span className="hidden md:block text-mc-text-secondary text-sm font-mono">{format(currentTime, 'HH:mm:ss')}</span>
-            <div
-              className={`flex items-center gap-2 px-2 md:px-3 py-1 rounded border text-xs md:text-sm font-medium ${
-                isOnline
-                  ? 'bg-mc-accent-green/20 border-mc-accent-green text-mc-accent-green'
-                  : 'bg-mc-accent-red/20 border-mc-accent-red text-mc-accent-red'
+            <span
+              title={isOnline ? "System Online" : "System Offline"}
+              className={`w-3 h-3 rounded-full shrink-0 cursor-default ${
+                isOnline ? "bg-mc-accent-green animate-pulse" : "bg-mc-accent-red"
               }`}
-            >
-              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-mc-accent-green animate-pulse' : 'bg-mc-accent-red'}`} />
-              {isOnline ? 'ONLINE' : 'OFFLINE'}
-            </div>
+            />
             <button onClick={() => router.push('/settings')} className="min-h-11 min-w-11 p-2 hover:bg-mc-bg-tertiary rounded text-mc-text-secondary" title="Settings">
               <Settings className="w-5 h-5" />
             </button>
