@@ -19,6 +19,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { AgentModal } from './AgentModal';
+import { AgentLogsView } from './AgentLogsView';
 import type { Agent, AgentTask } from '@/lib/types';
 
 interface OpenClawSession {
@@ -117,11 +118,7 @@ export function OpenClawPanel() {
     <div data-component="src/components/OpenClawPanel" className="min-h-screen">
       {/* Toolbar */}
       <div className="border-b border-mc-border bg-mc-bg-secondary">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Cpu className="w-4 h-4 text-mc-accent" />
-            <span className="font-mono font-medium">OpenClaw Gateway</span>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-end gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <button
               onClick={async () => {
@@ -337,7 +334,7 @@ export function OpenClawPanel() {
                                     </div>
                                     <div className="flex items-center gap-1.5 flex-shrink-0">
                                       <a
-                                        href={`/workspace/${task.workspace_slug}?view=logs&agent=${agent.id}`}
+                                        href="/openclaw"
                                         onClick={(e) => e.stopPropagation()}
                                         className="flex items-center gap-1 px-2 py-1 rounded text-xs border border-mc-border hover:bg-mc-bg-tertiary transition-colors text-mc-text-secondary hover:text-mc-text"
                                         title="View logs"
@@ -477,6 +474,13 @@ export function OpenClawPanel() {
                   </div>
                 )}
               </div>
+            </div>
+
+          </div>
+          {/* Card: Live Agent Logs */}
+          <div className="rounded-lg border border-mc-border bg-mc-bg overflow-hidden">
+            <div className="h-[600px] flex flex-col">
+              <AgentLogsView />
             </div>
           </div>
         </div>

@@ -143,11 +143,7 @@ export function SystemPanel() {
     <div data-component="src/components/SystemPanel" className="min-h-screen">
       {/* Toolbar */}
       <div className="border-b border-mc-border bg-mc-bg-secondary">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-mc-accent" />
-            <span className="font-mono font-medium">System Monitor</span>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-end gap-2 flex-wrap">
           <button
             onClick={fetchData}
             disabled={loading}

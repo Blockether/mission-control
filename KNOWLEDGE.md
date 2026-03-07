@@ -514,15 +514,15 @@ Real-time agent session logs from OpenClaw Gateway, polled and stored by the dae
 - `GET /api/logs` — Query with rich filtering: `agent_id`, `session_id`, `role`, `workspace_id`, `search` (LIKE), `from`/`to` (date range), `limit`/`offset` (pagination), `order` (asc/desc). Returns `{logs, total, limit, offset, hasMore}`.
 - `POST /api/logs/ingest` — Bulk insert from daemon. Uses `INSERT OR IGNORE` for dedup by content_hash.
 - `GET /api/logs/sessions` — Distinct sessions with log counts (for filter dropdown).
-- `DELETE /api/logs?days=30` — Cleanup stale entries older than N days.
+- `DELETE /api/logs?days=60` — Cleanup stale entries older than N days.
 
 **Daemon module (`src/daemon/logs.ts`):** Polls every 30s. For each active OpenClaw session, fetches history, computes content_hash per message, stores new entries via `/api/logs/ingest`, broadcasts `agent_log_added` SSE event. Runs cleanup every ~50 minutes (100 ticks). Maintains an in-memory `knownHashes` Set to avoid redundant API calls.
 
-**UI:** `AgentLogsView` component accessible via "Agent Logs" tab in sidebar. Features: agent dropdown, role filter tabs, session filter, text search, date range inputs, paginated list with "Load more", auto-refresh on new data.
+**UI:** `AgentLogsView` component embedded in the OpenClaw page. Features: agent dropdown, role filter tabs, session filter, text search, date range inputs, paginated list with "Load more", auto-refresh on new data. The component accepts an optional `workspaceId` prop — when omitted (OpenClaw page), shows all logs globally.
 
 **SSE Event:** `agent_log_added` — payload contains `{count, session_id, agent_id, agent_name, workspace_id}`.
 
-**Retention:** Logs older than 30 days are automatically purged by the daemon. Manual cleanup available via `DELETE /api/logs?days=N`.
+**Retention:** Logs older than 60 days are automatically purged by the daemon. Manual cleanup available via `DELETE /api/logs?days=N`.
 
 ### System Dashboard
 

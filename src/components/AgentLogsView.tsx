@@ -19,7 +19,7 @@ import type { AgentLog } from '@/lib/types';
 import { AgentInitials } from './AgentInitials';
 
 interface AgentLogsViewProps {
-  workspaceId: string;
+  workspaceId?: string;
 }
 
 type RoleFilter = 'all' | 'user' | 'assistant' | 'system';
@@ -104,7 +104,7 @@ export function AgentLogsView({ workspaceId }: AgentLogsViewProps) {
   useEffect(() => {
     const fetchAgents = async () => {
       try {
-        const res = await fetch(`/api/agents?workspace_id=${workspaceId}`);
+        const res = await fetch(`/api/agents${workspaceId ? `?workspace_id=${workspaceId}` : ''}`);
         if (res.ok) {
           const data = await res.json();
           setAgents(Array.isArray(data) ? data : []);
@@ -121,7 +121,7 @@ export function AgentLogsView({ workspaceId }: AgentLogsViewProps) {
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const res = await fetch(`/api/logs/sessions?workspace_id=${workspaceId}`);
+        const res = await fetch(`/api/logs/sessions${workspaceId ? `?workspace_id=${workspaceId}` : ''}`);
         if (res.ok) {
           const data = await res.json();
           setSessions(Array.isArray(data) ? data : []);
@@ -143,11 +143,11 @@ export function AgentLogsView({ workspaceId }: AgentLogsViewProps) {
         setError(null);
 
         const params = new URLSearchParams({
-          workspace_id: workspaceId,
           limit: '50',
           offset: offset.toString(),
           order: 'desc',
         });
+        if (workspaceId) params.set('workspace_id', workspaceId);
 
         if (agentFilter) params.set('agent_id', agentFilter);
         if (roleFilter !== 'all') params.set('role', roleFilter);
@@ -258,14 +258,7 @@ export function AgentLogsView({ workspaceId }: AgentLogsViewProps) {
       className="flex-1 flex flex-col overflow-hidden"
     >
       {/* Toolbar */}
-      <div className="p-3 border-b border-mc-border bg-mc-bg-secondary flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-mc-accent" />
-          <span className="font-mono font-medium">Agent Logs</span>
-          <span className="text-xs text-mc-text-secondary hidden sm:inline">
-            {total > 0 ? `${total} total` : ''}
-          </span>
-        </div>
+      <div className="p-3 border-b border-mc-border bg-mc-bg-secondary flex items-center justify-end gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowFilters(!showFilters)}

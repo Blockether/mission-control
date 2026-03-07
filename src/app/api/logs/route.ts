@@ -110,13 +110,13 @@ export async function GET(request: NextRequest) {
  * DELETE /api/logs - Cleanup stale logs
  *
  * Query params:
- *   days - Delete logs older than N days (default 30)
+ *   days - Delete logs older than N days (default 60)
  */
 export async function DELETE(request: NextRequest) {
   try {
     const db = getDb();
     const url = request.nextUrl;
-    const days = parseInt(url.searchParams.get('days') || '30', 10) || 30;
+    const days = parseInt(url.searchParams.get('days') || '60', 10) || 60;
 
     const result = db.prepare(
       `DELETE FROM agent_logs WHERE created_at < datetime('now', ? || ' days')`

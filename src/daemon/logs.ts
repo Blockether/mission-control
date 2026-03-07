@@ -216,11 +216,11 @@ export function startLogPoller(config: DaemonConfig, stats: DaemonStats): () => 
 
   async function cleanupStaleLogs() {
     try {
-      const res = await mcFetch('/api/logs?days=30', { method: 'DELETE' });
+      const res = await mcFetch('/api/logs?days=60', { method: 'DELETE' });
       if (res.ok) {
         const result = await res.json();
         if (result.deleted > 0) {
-          log.info(`Cleaned up ${result.deleted} stale log entries (>30 days)`);
+          log.info(`Cleaned up ${result.deleted} stale log entries (>60 days)`);
           stats.logEntriesCleaned = (stats.logEntriesCleaned || 0) + result.deleted;
         }
       }
