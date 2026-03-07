@@ -29,6 +29,17 @@ const LIGHT_THEME_CSS = `
     background: #fff; border-bottom: 1px solid #e5d5b8;
     font-size: 13px; color: #666;
   }
+  .header .back-link {
+    display: inline-flex; align-items: center; gap: 5px;
+    color: #b8960c; text-decoration: none; font-weight: 600;
+    padding: 4px 10px; border-radius: 4px;
+    border: 1px solid #e5d5b8; background: #fdf4e5;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .header .back-link:hover { background: #f0e6d0; border-color: #b8960c; }
+  .header .back-link svg { width: 14px; height: 14px; }
+  .header .file-info { display: flex; align-items: center; gap: 8px; }
   .header .filename { color: #b8960c; font-weight: 600; }
   .header .size { color: #999; }
   .content { max-width: 860px; }
@@ -76,6 +87,9 @@ const LIGHT_THEME_CSS = `
 
 export async function GET(request: NextRequest) {
   const filePath = request.nextUrl.searchParams.get('path');
+  const rawReturnUrl = request.nextUrl.searchParams.get('returnUrl');
+  // Only allow relative URLs (same-origin) to prevent open redirect
+  const returnUrl = rawReturnUrl && /^\/[^/\\]/.test(rawReturnUrl) ? rawReturnUrl : '/';
 
   if (!filePath) {
     return NextResponse.json({ error: 'path is required' }, { status: 400 });
@@ -147,8 +161,14 @@ export async function GET(request: NextRequest) {
   <style>${LIGHT_THEME_CSS}</style>
 </head><body>
   <div class="header">
-    <span class="filename">${fileName}</span>
-    <span class="size">${(stats.size / 1024).toFixed(1)}KB</span>
+    <a class="back-link" href="${returnUrl.replace(/"/g, '&quot;')}">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      Mission Control
+    </a>
+    <div class="file-info">
+      <span class="filename">${fileName}</span>
+      <span class="size">${(stats.size / 1024).toFixed(1)}KB</span>
+    </div>
   </div>
   ${bodyContent}
 </body></html>`;
