@@ -193,8 +193,8 @@ export function AgentModal({ agent, onClose, workspaceId, onAgentCreated }: Agen
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  rows={2}
-                  className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent resize-none"
+                  rows={8}
+                  className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent resize-y"
                   placeholder="What does this agent do?"
                 />
               </div>
