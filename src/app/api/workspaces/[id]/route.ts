@@ -129,20 +129,16 @@ export async function DELETE(
       return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
     }
     
-    // Check if workspace has tasks or agents
+    // Check if workspace has tasks
     const taskCount = db.prepare(
       'SELECT COUNT(*) as count FROM tasks WHERE workspace_id = ?'
     ).get(id) as { count: number };
     
-    const agentCount = db.prepare(
-      'SELECT COUNT(*) as count FROM agents WHERE workspace_id = ?'
-    ).get(id) as { count: number };
     
-    if (taskCount.count > 0 || agentCount.count > 0) {
-      return NextResponse.json({ 
-        error: 'Cannot delete workspace with existing tasks or agents',
-        taskCount: taskCount.count,
-        agentCount: agentCount.count
+    if (taskCount.count > 0) {
+      return NextResponse.json({
+        error: 'Cannot delete workspace with existing tasks',
+        taskCount: taskCount.count
       }, { status: 400 });
     }
     

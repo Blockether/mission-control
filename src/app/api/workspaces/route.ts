@@ -52,10 +52,6 @@ export async function GET(request: NextRequest) {
           counts.total += tc.count;
         });
         
-        // Get agent count
-        const agentCount = db.prepare(
-          "SELECT COUNT(*) as count FROM agents WHERE workspace_id = ? OR source = 'synced'"
-        ).get(workspace.id) as { count: number };
         
         return {
           id: workspace.id,
@@ -68,7 +64,6 @@ export async function GET(request: NextRequest) {
           coordinator_email: workspace.coordinator_email,
           logo_url: workspace.logo_url,
           taskCounts: counts,
-          agentCount: agentCount.count
         };
       });
       

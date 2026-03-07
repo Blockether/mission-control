@@ -286,7 +286,6 @@ export interface WorkspaceStats {
     done: number;
     total: number;
   };
-  agentCount: number;
 }
 
 // Workflow template types

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, ArrowRight, Folder, Users, CheckSquare, Trash2, AlertTriangle, Activity, Mail, Pencil } from 'lucide-react';
+import { Plus, ArrowRight, Folder, CheckSquare, Trash2, AlertTriangle, Activity, Mail, Pencil } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { WorkspaceStats } from '@/lib/types';
@@ -199,10 +199,6 @@ function WorkspaceCard({ workspace, onDelete, onEdit }: { workspace: WorkspaceSt
             <CheckSquare className="w-4 h-4" />
             <span>{workspace.taskCounts.total} tasks</span>
           </div>
-          <div className="flex items-center gap-1">
-            <Users className="w-4 h-4" />
-            <span>{workspace.agentCount} agents</span>
-          </div>
         </div>
 
         <div className="mt-3 space-y-1.5 text-sm text-mc-text-secondary">
@@ -278,7 +274,7 @@ function WorkspaceCard({ workspace, onDelete, onEdit }: { workspace: WorkspaceSt
             </button>
             <button
               onClick={handleDelete}
-              disabled={deleting || workspace.taskCounts.total > 0 || workspace.agentCount > 0}
+              disabled={deleting || workspace.taskCounts.total > 0}
               className="px-4 py-2 bg-mc-accent-red text-white rounded-lg font-medium hover:bg-mc-accent-red/90 disabled:opacity-50"
             >
               {deleting ? 'Deleting...' : 'Delete Workspace'}
